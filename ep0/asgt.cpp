@@ -35,7 +35,7 @@ Arb read_arb(std::istream& in)
 
   cout << "arcs: " << arcs.size() << endl;
   for (const auto& p : arcs)
-    cout << p.first << ", " << p.second << endl;
+    cout << p.first+1 << ", " << p.second+1 << endl;
 
   cout << "arb: " << endl;
   for_each(vertices(arb).first, vertices(arb).second, [&](const auto& vtx) {
