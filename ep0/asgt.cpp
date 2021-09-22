@@ -22,7 +22,7 @@ Arb read_arb(std::istream& in)
   vector<pair<int, int>> arcs;         // vector of arcs (int pairs)
   while(num_arcs--) {                  // [num_arcs, 0)
       int u, v; in >> u >> v;          // extracts pair of vtx
-      arcs.push_back(make_pair(u, v)); // pushes pair to the arcs vector
+      arcs.push_back(make_pair(--u, --v)); // pushes pair to the arcs vector
   }
 
   /* builds arborescence */
@@ -38,11 +38,11 @@ Arb read_arb(std::istream& in)
     cout << p.first << ", " << p.second << endl;
 
   cout << "arb: " << endl;
-  for_each(vertices(arb).first+1, vertices(arb).second, [&](const auto& vtx) {
-      cout << "Arcs that leave " << vtx << " go to: ";
+  for_each(vertices(arb).first, vertices(arb).second, [&](const auto& vtx) {
+      cout << "Arcs that leave " << vtx+1 << " go to: ";
 
       for_each(out_edges(vtx, arb).first, out_edges(vtx, arb).second, [&](const auto& arc) {
-          cout << " " << target(arc, arb);
+          cout << " " << target(arc, arb)+1;
       });
 
       cout << endl;
