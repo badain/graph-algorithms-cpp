@@ -6,3 +6,4 @@ Developer PowerShell for VS 2019.lnk
 *.d
 *.o
 ep0/main
+ep0/out
