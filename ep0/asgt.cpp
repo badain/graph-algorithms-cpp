@@ -19,9 +19,9 @@ Arb read_arb(std::istream& in)
   size_t num_arcs; num_arcs = num_vtx-1; // extracts number of arcs
 
   /* builds arcs vector */
-  vector<pair<int, int>> arcs;         // vector of arcs (int pairs)
-  while(num_arcs--) {                  // [num_arcs, 0)
-      int u, v; in >> u >> v;          // extracts pair of vtx
+  vector<pair<int, int>> arcs;             // vector of arcs (int pairs)
+  while(num_arcs--) {                      // [num_arcs, 0)
+      int u, v; in >> u >> v;              // extracts pair of vtx
       arcs.push_back(make_pair(--u, --v)); // pushes pair to the arcs vector
   }
 
