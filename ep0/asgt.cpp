@@ -99,17 +99,17 @@ HeadStart preprocess(Arb &arb, const Vertex& root)
   std::copy(r.begin(), r.end(), discover_order.begin());
   std::sort(discover_order.begin(), discover_order.end(),
       indirect_cmp< time_pm_type, std::less< vtx_size_type > >(dtime_pm));
-  /*
-  std::cout << "order of discovery: ";
-  int i;
-  for (i = 0; i < num_vertices(arb); ++i)
-      std::cout << discover_order[i]+1 << " ";
-  */
+  
   std::vector< vtx_size_type > finish_order(num_vertices(arb));
   std::copy(r.begin(), r.end(), finish_order.begin());
   std::sort(finish_order.begin(), finish_order.end(),
       indirect_cmp< time_pm_type, std::less< vtx_size_type > >(ftime_pm));
-  /*
+
+  /* DEBUG
+  std::cout << "order of discovery: ";
+  int i;
+  for (i = 0; i < num_vertices(arb); ++i)
+      std::cout << discover_order[i]+1 << " ";
   std::cout << std::endl << "order of finish: ";
   for (i = 0; i < num_vertices(arb); ++i)
       std::cout << finish_order[i]+1 << " ";
