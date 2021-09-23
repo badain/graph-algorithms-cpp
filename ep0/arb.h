@@ -13,25 +13,24 @@ typedef boost::adjacency_list<boost::vecS,
                               boost::vecS,
                               boost::directedS> Arb;
 typedef boost::graph_traits<Arb>::vertex_descriptor Vertex;
-typedef typename boost::graph_traits<Arb>::vertices_size_type vtx_size_type; // num of vertices type
 
 /* Students must adapt this class for their needs; the innards of
    these objects are only accessed by the student's code */
 class HeadStart {
 public:
-  HeadStart(std::vector< vtx_size_type > a, std::vector< vtx_size_type > b) {
-    discover_order = a;
-    finish_order = b;
+  HeadStart(std::pair<std::vector<int>, std::vector<int>> d_f) {
+    discover_order = d_f.first;
+    finish_order = d_f.second;
   }
-  std::vector< vtx_size_type > getDiscover() const {
+  std::vector<int> getDiscover() const {
     return discover_order;
   }
-  std::vector< vtx_size_type > getFinish() const {
+  std::vector<int> getFinish() const {
     return finish_order;
   }
 private:
-  std::vector< vtx_size_type > discover_order;
-  std::vector< vtx_size_type > finish_order;
+  std::vector<int> discover_order;
+  std::vector<int> finish_order;
 };
 
 #endif // #ifndef ARB_H
