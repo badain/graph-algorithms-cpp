@@ -18,19 +18,25 @@ typedef boost::graph_traits<Arb>::vertex_descriptor Vertex;
    these objects are only accessed by the student's code */
 class HeadStart {
 public:
-  HeadStart(std::pair<std::vector<int>, std::vector<int>> d_f) {
-    discover_order = d_f.first;
-    finish_order = d_f.second;
+  HeadStart(std::vector<int>* d, std::vector<int>* f) {
+    discover = *d;
+    finish = *f;
+  }
+  int getDiscoverItem(int x) const {
+    return discover[x];
+  }
+  int getFinishItem(int x) const {
+    return finish[x];
   }
   std::vector<int> getDiscover() const {
-    return discover_order;
+    return discover;
   }
   std::vector<int> getFinish() const {
-    return finish_order;
+    return finish;
   }
 private:
-  std::vector<int> discover_order;
-  std::vector<int> finish_order;
+  std::vector<int> discover;
+  std::vector<int> finish;
 };
 
 #endif // #ifndef ARB_H

@@ -29,10 +29,8 @@ void dfs_visit(Arb &arb, Vertex vtx, vector<char>* color, vector<Vertex>* predec
   (*finish)[vtx] = (*time);
 }
 
-pair<vector<int>, vector<int>> dfs(Arb &arb) {
+void dfs(Arb &arb, vector<int>* discover, vector<int>* finish) {
   // vector initialization
-  vector<int> discover(num_vertices(arb));
-  vector<int> finish(num_vertices(arb));
   vector<char> color(num_vertices(arb), 'w');
   vector<Vertex> predecessor(num_vertices(arb));
   int time; time = 0;
@@ -40,7 +38,7 @@ pair<vector<int>, vector<int>> dfs(Arb &arb) {
   /* graph traversing: dfs visiting */
   auto vp = vertices(arb);
   for_each(vp.first, vp.second, [&](const auto& vtx) {
-    if(color[vtx] == 'w') dfs_visit(arb, vtx, &color, &predecessor, &time, &discover, &finish);
+    if(color[vtx] == 'w') dfs_visit(arb, vtx, &color, &predecessor, &time, discover, finish);
   });
 
   /* DEBUG
@@ -49,8 +47,6 @@ pair<vector<int>, vector<int>> dfs(Arb &arb) {
   for (int y : finish) cout << y << " ";
   cout << endl;
   */
-
-  return make_pair(discover,finish);   
 }
 
 Arb read_arb(std::istream& in)
@@ -96,19 +92,19 @@ Arb read_arb(std::istream& in)
 
 HeadStart preprocess(Arb &arb, const Vertex& root)
 {
-  pair<vector<int>, vector<int>> discover_finish;
-  discover_finish = dfs(arb);
-  return HeadStart(discover_finish);
+  vector<int> discover(num_vertices(arb));
+  vector<int> finish(num_vertices(arb));
+
+  dfs(arb, &discover, &finish);
+
+  return HeadStart(&discover, &finish);
 }
 
 bool is_ancestor (const Vertex& u, const Vertex& v, const HeadStart& data)
 {
   if(u == v) return true; // trivial case
 
-  vector<int> discover = data.getDiscover();
-  vector<int> finish   = data.getFinish();
-  
-  if(discover[u] > discover[v] || finish[v] > finish[u]) return false; // based on corollary
+  if(data.getDiscoverItem(u) > data.getDiscoverItem(v) || data.getFinishItem(v) > data.getFinishItem(u)) return false; // based on corollary
 
   return true;
 }
