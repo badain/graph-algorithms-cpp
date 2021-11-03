@@ -28,6 +28,14 @@ s ~> t (digraph) [directed]
 
 > finding the shortest (st-walk) is more time demanding
 
+## Reachbility Algorithm
+Uses a *maximal path algorithm* to traverse the digraph blindly **with no importance to which vtx will be reached**.
+
+> **Main idea:** starts from a vtx and find a random maximal path. if final walk vtx == vtx to reach then exists a path. if not, then backtracks and chooses another path. if the vtx is not found, then the path does not exists.
+
+> Adjencency_List = list of neighbour vtxs of a vtx
+> Predecessors = predecessor vtxs of a vtx
+
 ## 1) Aplication: 2-Satisfiability Problem (2-SAT)
 - *Input:* Logical Formula PHI in CNF (Conjunctive Normal Flow) where each clause has 2 literals;
 - *Output:* Is PHI satisfiable? (Is there a truth assignment of literals that can make PHI be truth?)
