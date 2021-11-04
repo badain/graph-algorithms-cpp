@@ -107,7 +107,6 @@ void compute_bcc (Graph &g, bool fill_cutvxs, bool fill_bridges)
         bcc_stack.pop();
       }
       //cout << endl;
-      bcc_group += 1;
     }
   }
 
