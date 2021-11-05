@@ -1,3 +1,6 @@
+/**********************************************************************
+* Author: Rafael Badain @ University of Sao Paulo
+**********************************************************************/
 #include "asgt.h"
 
 #include <stack>
@@ -36,6 +39,7 @@ void DFS_bcc(Graph &g, Vertex vtx, vector<bool>* visited, vector<int>* lowpoint,
       // checks for articulation point
       // a nonroot vtx is a articulation point if and only if adj of vtx is such that lowpoint(adj) ≥ depth(vtx)
       if( ((*parent)[vtx] != null_vtx) && ((*lowpoint)[adj] >= (*discovery)[vtx]) ) {
+        g[vtx].cutvertex = true; // debug 1
         while ((*bcc_stack).top() != e) {
           g[(*bcc_stack).top()].bcc = (*bcc_group);
           (*bcc_stack).pop();
@@ -46,6 +50,7 @@ void DFS_bcc(Graph &g, Vertex vtx, vector<bool>* visited, vector<int>* lowpoint,
       }
       // if a root vtx has one or more child is a articulation point
       if( ((*parent)[vtx] == null_vtx) && (child_num > 0) ) {
+        if(child_num > 1) g[vtx].cutvertex = true; // debug 1
         while ((*bcc_stack).top() != e) {
           g[(*bcc_stack).top()].bcc = (*bcc_group);
           (*bcc_stack).pop();
@@ -54,6 +59,7 @@ void DFS_bcc(Graph &g, Vertex vtx, vector<bool>* visited, vector<int>* lowpoint,
         (*bcc_stack).pop();
         (*bcc_group) += 1;
       }
+      if((*lowpoint)[adj] > (*discovery)[vtx]) g[e].bridge = true; // debug 2
 
     }
     // if its not a articulation point
