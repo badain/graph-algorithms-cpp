@@ -23,3 +23,7 @@ H = G[U]
 *That is, H is a subgraph induced by U if its edges are only related to vtxs in U*~
 
 ### Vertex/Edge Deletion
+G[ U/F ] is a graph induced by (U/F), that is, U without F.
+
+
+## 10 - I need to learn connections
