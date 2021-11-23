@@ -48,5 +48,14 @@ if v.d > u.d + w(u,v):  // if there is a shortest path between u and v (if previ
 
 | Algorithm    | # each edge is relaxed |
 |--------------|------------------------|
-| Bellman-Ford | \|V\| - 1 = n(E)         |
+| Bellman-Ford | \|V\| - 1 = n(E)       |
 | Dijkstra     | 1                      |
+
+## Negative Weight Edges
+> Negative-weight cycle: cycle whose edge weights sum to negative
+
+Shortest-Path weights are well defined for negative edge weights that are *not in a negative-weight cycle*.
+
+Paths to v that includes negative-weight cycle are defined as *del(s, v) = -INFINITE*. If a vertex is reachable from a vertex whose path weight is -INFINITE, then, its path weight should be -INFINITE too.
+
+Unreachable negative-weight cycles have INFINITE weight
