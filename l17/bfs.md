@@ -79,3 +79,4 @@ BFS properly calculates the shortest path between s and v as the property d to e
 
 ## Breadth-First Tree
 BFS calculates the BF-tree as the property pi to each vertex = predecessor subgraph.
+> BFS is only useful to unweighted graphs
