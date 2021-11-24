@@ -48,11 +48,11 @@ Digraph build_digraph(const Digraph& market)
 }
 
 /* The relaxation technique evaluates if there is a shortest possible distance by updating its property d every time a shortest path is found. */
-void relax(Digraph& digraph, Vertex& u, Vertex& v, double& cost) {
+void relax(Digraph& digraph, Vertex& u, Vertex& v, double& cost, vector<Vertex>& predecessor) {
 
   if(digraph[v].d > digraph[u].d + cost) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
     digraph[v].d  = digraph[u].d + cost;   // v is tagged with a new shortest distance
-    digraph[v].pi = u;                     // u is the proper v predecessor in the Shortest Path Tree
+    predecessor[v] = u;                     // u is the proper v predecessor in the Shortest Path Tree
   }
 
 }
@@ -64,10 +64,10 @@ std::tuple<bool,
 has_negative_cycle(Digraph& digraph)
 {
 
-  /* initialization
-  vector<int> discovery(num_vertices(digraph), 0); // discovery weight for each vtx (zero for extra vtx 0)
+  /* initialization */
+  // vector<int> discovery(num_vertices(digraph), 0); // discovery weight for each vtx (zero for extra vtx 0)
   vector<Vertex> predecessor(num_vertices(digraph), null_vtx); // predecessor of each vtx
-  */
+  
 
   // relax each edges |V| - 1 times
   for(int i = 0; i < int(num_vertices(digraph)-1); i++) {
@@ -80,7 +80,7 @@ has_negative_cycle(Digraph& digraph)
       Vertex u = source(*edge_it, digraph);
       Vertex v = target(*edge_it, digraph);
 
-      relax(digraph, u, v, digraph[*edge_it].cost); // relax edge
+      relax(digraph, u, v, digraph[*edge_it].cost, predecessor); // relax edge
 
     }
 

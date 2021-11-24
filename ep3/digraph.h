@@ -9,10 +9,7 @@
 struct BundledVertex
 {
   int d; // cumulative path weight
-  boost::graph_traits<Digraph>::vertex_descriptor pi; // predecessor vertex
-
   BundledVertex() : d(0.0) {}
-  BundledVertex() : pi(boost::graph_traits<Digraph>::null_vertex()) {}
 };
 
 /* Students may add any number of fields and methods to this struct;
