@@ -38,3 +38,11 @@ Rafael Badain - 10277102
     **Feasible Multiplier**
 
     If a loophole doesn't exists, than a **feasible multiplier** function z: V -> R>0 must be found, where z(v) >= z(u)*c(u,v) for each pair of uv where c(uv) is defined.
+
+    *Theorem 24.9*
+    
+    A Feasible Solution to a graph G with no negative-weight cycles can be obtained by adding a extra vertex v0, that is connected to each one of the original vertices by a 0-weighted edge.
+    
+    The Feasible Solution is given by `x = ( w(v0, v1), w(v0, v2), w(v0, v3), ..., w(v0, vn) )`
+
+    Any negative-weight cycle in the constraint graph is reachable from v0, thus, if Bellman-Ford returns true then the shortest-path weight is the feasible solution.
