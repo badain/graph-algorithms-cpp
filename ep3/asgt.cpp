@@ -17,58 +17,111 @@
 
 /* The following declarations shorten the bogus code below. Feel free
  * to change/drop them. */
-using boost::add_edge;
-using boost::num_vertices;
-using boost::out_edges;
-using std::vector;
+using namespace std;
+using namespace boost;
+
+// Type Definition: Graph Iterator
+typedef boost::graph_traits<Digraph>::vertex_iterator vtx_iterator_type;
+typedef boost::graph_traits<Digraph>::edge_iterator edge_iterator_type;
+typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type;
+Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
 
 /* builds auxiliary market digraph
+   process currency exchange rates to allow the negative cycle search
    target execution time = O(n+m)  */
 Digraph build_digraph(const Digraph& market)
 {
-  /* placeholder for NRVO */
-  Digraph digraph(num_vertices(market));
+  /* placeholder for NRVO 
+  Digraph digraph(num_vertices(market));*/
 
   /* flip some signs in the arc costs below to exercise the many
    * execution pathways */
 
-  /* create arcs (0,1) and (1,0) */
+  /* create arcs (0,1) and (1,0)
   Arc a0, a1;
   std::tie(a0, std::ignore) = add_edge(0, 1, digraph);
   digraph[a0].cost = 11.0;
   std::tie(a1, std::ignore) = add_edge(1, 0, digraph);
-  digraph[a1].cost = -17.0;
+  digraph[a1].cost = -17.0; */
  
-  return digraph;
+  return market;
 }
 
+/* The relaxation technique evaluates if there is a shortest possible distance by updating its property d every time a shortest path is found. */
+void relax(Digraph& digraph, Vertex& u, Vertex& v, double& cost, vector<int>& discovery, vector<Vertex>& predecessor) {
+  if(discovery[v] > discovery[u] + cost) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
+    discovery[v]   = discovery[u] + cost;  // v is tagged with a new shortest distance
+    predecessor[v] = u; // u is the proper v predecessor in the Shortest Path Tree
+  }
+}
+
+/* checks for negative-weight cycles in a digraph. uses Bellman-Ford algorithm with an extra vertice (that is, initial distance is 0 not INFINITE) */
 std::tuple<bool,
            boost::optional<NegativeCycle>,
            boost::optional<FeasiblePotential>>
 has_negative_cycle(Digraph& digraph)
 {
+
+  // initialization
+  vector<int> discovery(num_vertices(digraph), 0); // discovery weight for each vtx (zero for extra vtx 0)
+  vector<Vertex> predecessor(num_vertices(digraph), null_vtx); // predecessor of each vtx
+
+  // relax each edges |V| - 1 times
+  cout << num_vertices(digraph) << endl;
+  for(int i = 0; i < int(num_vertices(digraph)-1); i++) {
+
+    // iterate every edge in digraph
+    edge_iterator_type edge_it, edge_end; // iterator edege, last edge
+    for (tie(edge_it, edge_end) = edges(digraph); edge_it != edge_end; ++edge_it) { // edge traversing
+      
+      // gets source and target vertex
+      Vertex u = source(*edge_it, digraph);
+      Vertex v = target(*edge_it, digraph);
+
+      relax(digraph, u, v, digraph[*edge_it].cost, discovery, predecessor); // relax edge
+
+    }
+
+  }
+
+  // checks existence of negative-weight cycle
+  edge_iterator_type edge_it, edge_end; // iterator edege, last edge
+  for (tie(edge_it, edge_end) = edges(digraph); edge_it != edge_end; ++edge_it) { // edge traversing
+
+    // gets source and target vertex
+    Vertex u = source(*edge_it, digraph);
+    Vertex v = target(*edge_it, digraph);
+
+    if(discovery[v] > discovery[u] + digraph[*edge_it].cost) {
+      return {false, boost::none, boost::none};
+    }
+
+  }
+  return {true, boost::none, boost::none};
+
+  /* bogus code
   const Arc& a0 = *(out_edges(0, digraph).first);
   const Arc& a1 = *(out_edges(1, digraph).first);
 
   Walk walk(digraph, 0);
   walk.extend(a0);
-  walk.extend(a1);
+  walk.extend(a1); */
 
   /* Replace `NegativeCycle(walk)` with `boost::none` in the next
    * command to trigger "negative cycle reported but not computed".
    * Comment the whole `return` and uncomment the remaining lines to
-   * exercise construction of a feasible potential. */
+   * exercise construction of a feasible potential.
 
   // encourage RVO
-  return {true, NegativeCycle(walk), boost::none};
+  return {true, NegativeCycle(walk), boost::none}; */
 
   /* Replace `FeasiblePotential(digraph, y)` with `boost::none` in the
    * next command to trigger "feasible potential reported but not
-   * computed". */
+   * computed".
 
   // encourage RVO
   vector<double> y(num_vertices(digraph), 0.0);
-  return {false, boost::none, FeasiblePotential(digraph, y)};
+  return {false, boost::none, FeasiblePotential(digraph, y)}; */
 }
 
 Loophole build_loophole(const NegativeCycle& negcycle,
