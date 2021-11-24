@@ -22,6 +22,8 @@ using boost::num_vertices;
 using boost::out_edges;
 using std::vector;
 
+/* builds auxiliary market digraph
+   target execution time = O(n+m)  */
 Digraph build_digraph(const Digraph& market)
 {
   /* placeholder for NRVO */
@@ -30,7 +32,7 @@ Digraph build_digraph(const Digraph& market)
   /* flip some signs in the arc costs below to exercise the many
    * execution pathways */
 
-  /* create arcs 01 and 10 */
+  /* create arcs (0,1) and (1,0) */
   Arc a0, a1;
   std::tie(a0, std::ignore) = add_edge(0, 1, digraph);
   digraph[a0].cost = 11.0;

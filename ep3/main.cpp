@@ -48,8 +48,8 @@ Digraph read_market(std::istream& is)
 
 int main(int argc, char** argv)
 {
-  Digraph market{read_market(std::cin)};
-  Digraph digraph{build_digraph(market)};
+  Digraph market{read_market(std::cin)};  // reads input as market
+  Digraph digraph{build_digraph(market)}; // builds auxiliary digraph based on market (TODO)
 
   try {
     cout.precision(16);
