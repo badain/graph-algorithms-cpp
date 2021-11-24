@@ -49,10 +49,12 @@ Digraph build_digraph(const Digraph& market)
 
 /* The relaxation technique evaluates if there is a shortest possible distance by updating its property d every time a shortest path is found. */
 void relax(Digraph& digraph, Vertex& u, Vertex& v, double& cost) {
+
   if(digraph[v].d > digraph[u].d + cost) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
     digraph[v].d  = digraph[u].d + cost;   // v is tagged with a new shortest distance
     digraph[v].pi = u;                     // u is the proper v predecessor in the Shortest Path Tree
   }
+
 }
 
 /* checks for negative-weight cycles in a digraph. uses Bellman-Ford algorithm with an extra vertice (that is, initial distance is 0 not INFINITE) */
