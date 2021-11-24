@@ -70,7 +70,6 @@ has_negative_cycle(Digraph& digraph)
   */
 
   // relax each edges |V| - 1 times
-  cout << num_vertices(digraph) << endl;
   for(int i = 0; i < int(num_vertices(digraph)-1); i++) {
 
     // iterate every edge in digraph
