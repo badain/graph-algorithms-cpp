@@ -48,10 +48,10 @@ Digraph build_digraph(const Digraph& market)
 }
 
 /* The relaxation technique evaluates if there is a shortest possible distance by updating its property d every time a shortest path is found. */
-void relax(Digraph& digraph, Vertex& u, Vertex& v, double& cost, vector<int>& discovery, vector<Vertex>& predecessor) {
-  if(discovery[v] > discovery[u] + cost) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
-    discovery[v]   = discovery[u] + cost;  // v is tagged with a new shortest distance
-    predecessor[v] = u; // u is the proper v predecessor in the Shortest Path Tree
+void relax(Digraph& digraph, Vertex& u, Vertex& v, double& cost) {
+  if(digraph[v].d > digraph[u].d + cost) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
+    digraph[v].d  = digraph[u].d + cost;   // v is tagged with a new shortest distance
+    digraph[v].pi = u;                     // u is the proper v predecessor in the Shortest Path Tree
   }
 }
 
@@ -62,9 +62,10 @@ std::tuple<bool,
 has_negative_cycle(Digraph& digraph)
 {
 
-  // initialization
+  /* initialization
   vector<int> discovery(num_vertices(digraph), 0); // discovery weight for each vtx (zero for extra vtx 0)
   vector<Vertex> predecessor(num_vertices(digraph), null_vtx); // predecessor of each vtx
+  */
 
   // relax each edges |V| - 1 times
   cout << num_vertices(digraph) << endl;
@@ -78,7 +79,7 @@ has_negative_cycle(Digraph& digraph)
       Vertex u = source(*edge_it, digraph);
       Vertex v = target(*edge_it, digraph);
 
-      relax(digraph, u, v, digraph[*edge_it].cost, discovery, predecessor); // relax edge
+      relax(digraph, u, v, digraph[*edge_it].cost); // relax edge
 
     }
 
@@ -92,7 +93,7 @@ has_negative_cycle(Digraph& digraph)
     Vertex u = source(*edge_it, digraph);
     Vertex v = target(*edge_it, digraph);
 
-    if(discovery[v] > discovery[u] + digraph[*edge_it].cost) {
+    if(digraph[v].d > digraph[u].d + digraph[*edge_it].cost) {
       return {false, boost::none, boost::none};
     }
 
