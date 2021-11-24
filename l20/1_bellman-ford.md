@@ -12,7 +12,7 @@ BELLMAN-FORD (G, w, s):
     INITIALIZE-SINGLE-SOURCE(G,s) // vtx tags initialization
     
     // relax each edge |V| - 1 times
-    for i in num(edges): // num(edges) = |V| - 1
+    for i in |V| - 1:
         for edge(u,v) in G:
             RELAX(u, v, w)
     
