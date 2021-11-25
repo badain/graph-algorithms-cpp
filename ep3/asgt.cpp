@@ -115,8 +115,6 @@ has_negative_cycle(Digraph& digraph)
     Vertex v = target(*edge_it, digraph);
 
     if(digraph[v].color == false && digraph[v].d > digraph[u].d + digraph[*edge_it].cost) {
-      //cout << v+1 << " is negative" << endl; //DEBUG
-
       // tags v as negative
       // digraph[v].d = -numeric_limits<double>::max(); // tags with -INF (may be unecessary)
       digraph[v].color = true; // tags as discovered
@@ -143,39 +141,12 @@ has_negative_cycle(Digraph& digraph)
     }
     return {false, boost::none, FeasiblePotential(digraph, y)};
   }
-
-  /* bogus code
-  const Arc& a0 = *(out_edges(0, digraph).first);
-  const Arc& a1 = *(out_edges(1, digraph).first);
-
-  Walk walk(digraph, 0);
-  walk.extend(a0);
-  walk.extend(a1); */
-
-  /* Replace `NegativeCycle(walk)` with `boost::none` in the next
-   * command to trigger "negative cycle reported but not computed".
-   * Comment the whole `return` and uncomment the remaining lines to
-   * exercise construction of a feasible potential.
-
-  // encourage RVO
-  return {true, NegativeCycle(walk), boost::none}; */
-
-  /* Replace `FeasiblePotential(digraph, y)` with `boost::none` in the
-   * next command to trigger "feasible potential reported but not
-   * computed".
-
-  // encourage RVO
-  vector<double> y(num_vertices(digraph), 0.0);
-  return {false, boost::none, FeasiblePotential(digraph, y)}; */
 }
 
 Loophole build_loophole(const NegativeCycle& negcycle,
                         const Digraph& aux_digraph,
                         const Digraph& market)
 {
-  /* bogus code */
-  // const Arc& b0 = *(out_edges(0, market).first);
-  // const Arc& b1 = *(out_edges(1, market).first);
   vector<Arc> negativeArcs = negcycle.get();
   Vertex source_vtx = source(negativeArcs[0], market);
 
@@ -189,6 +160,7 @@ Loophole build_loophole(const NegativeCycle& negcycle,
 
     w.extend(market_arc);
   }
+
   // encourage RVO
   return Loophole(w);
 }
