@@ -121,6 +121,8 @@ has_negative_cycle(Digraph& digraph)
 
       // adds every v predecessor to the negative cycle
       discover_negative_cycle(digraph, v, predecessor, negativeVertices);
+
+      break; //once a negative cycle is discovered, ends search
     }
 
   }
