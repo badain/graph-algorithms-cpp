@@ -52,7 +52,7 @@ void relax(Digraph& digraph, Vertex& u, Vertex& v, double& cost, vector<Vertex>&
 
   if(digraph[v].d > digraph[u].d + cost) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
     digraph[v].d  = digraph[u].d + cost;   // v is tagged with a new shortest distance
-    predecessor[v] = u;                     // u is the proper v predecessor in the Shortest Path Tree
+    predecessor[v] = u;                    // u is the proper v predecessor in the Shortest Path Tree
   }
 
 }
@@ -93,6 +93,7 @@ has_negative_cycle(Digraph& digraph)
     // gets source and target vertex
     Vertex u = source(*edge_it, digraph);
     Vertex v = target(*edge_it, digraph);
+    // cout << u+1 << " " << v+1 << " " << digraph[*edge_it].cost << endl;
 
     if(digraph[v].d > digraph[u].d + digraph[*edge_it].cost) {
       return {false, boost::none, boost::none};
