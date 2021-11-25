@@ -67,10 +67,10 @@ Digraph build_digraph(const Digraph& market)
 }
 
 /* The relaxation technique evaluates if there is a shortest possible distance by updating its property d every time a shortest path is found. */
-void relax(Digraph& digraph, Vertex& u, Vertex& v, double& cost, vector<Vertex>& predecessor) {
+void relax(Digraph& digraph, Vertex& u, Vertex& v, double& weight, vector<Vertex>& predecessor) {
 
-  if(digraph[v].d > digraph[u].d + cost) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
-    digraph[v].d  = digraph[u].d + cost;   // v is tagged with a new shortest distance
+  if(digraph[v].d > digraph[u].d + weight) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
+    digraph[v].d  = digraph[u].d + weight;   // v is tagged with a new shortest distance
     predecessor[v] = u;                    // u is the proper v predecessor in the Shortest Path Tree
   }
 
