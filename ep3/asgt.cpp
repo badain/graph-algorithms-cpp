@@ -115,11 +115,11 @@ has_negative_cycle(Digraph& digraph)
     // cout << u+1 << " " << v+1 << " " << digraph[*edge_it].cost << endl;
 
     if(digraph[v].d > digraph[u].d + digraph[*edge_it].cost) {
-      return {false, boost::none, boost::none};
+      return {true, boost::none, boost::none};
     }
 
   }
-  return {true, boost::none, boost::none};
+  return {false, boost::none, boost::none};
 
   /* bogus code
   const Arc& a0 = *(out_edges(0, digraph).first);
