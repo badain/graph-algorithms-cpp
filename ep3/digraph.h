@@ -9,7 +9,8 @@
 struct BundledVertex
 {
   double d; // cumulative path weight
-  BundledVertex() : d(0.0) {}
+  bool color;
+  BundledVertex() : d(0.0), color(false) {} // 0 weight accounts for extra vertex, dfs cycle detection
 };
 
 /* Students may add any number of fields and methods to this struct;
@@ -19,7 +20,8 @@ struct BundledVertex
 struct BundledArc
 {
   double cost;
-  BundledArc() : cost(0.0) {}
+  double cost_log;
+  BundledArc() : cost(0.0), cost_log(0.0) {}
 };
 
 /* the remainder of the file must not be changed */

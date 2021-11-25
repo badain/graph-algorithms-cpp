@@ -48,7 +48,8 @@ Digraph build_digraph(const Digraph& market)
     std::tie(a, std::ignore) = add_edge(u, v, digraph);
 
     // process auxiliary to negative log
-    digraph[a].cost = -log(market[*edge_it].cost);
+    digraph[a].cost = market[*edge_it].cost;
+    digraph[a].cost_log = -log(market[*edge_it].cost);
     // cout << u+1 << " " << v+1 << " " << digraph[a].cost << endl;
 
   }
@@ -99,7 +100,7 @@ has_negative_cycle(Digraph& digraph)
       Vertex u = source(*edge_it, digraph);
       Vertex v = target(*edge_it, digraph);
 
-      relax(digraph, u, v, digraph[*edge_it].cost, predecessor); // relax edge
+      relax(digraph, u, v, digraph[*edge_it].cost_log, predecessor); // relax edge
 
     }
 
@@ -114,8 +115,8 @@ has_negative_cycle(Digraph& digraph)
     Vertex v = target(*edge_it, digraph);
     // cout << u+1 << " " << v+1 << " " << digraph[*edge_it].cost << endl;
 
-    if(digraph[v].d > digraph[u].d + digraph[*edge_it].cost) {
       return {true, boost::none, boost::none};
+    if(digraph[v].d > digraph[u].d + digraph[*edge_it].cost_log) {
     }
 
   }
