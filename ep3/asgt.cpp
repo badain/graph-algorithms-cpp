@@ -126,9 +126,13 @@ has_negative_cycle(Digraph& digraph)
     }
 
   }
-
+  
+  // if there is a negative cycle
   if(negativeVertices.size() > 0) {
+    // stores the necgative cycle in a Walk object
     Walk negativeCycle(digraph, negativeVertices[negativeVertices.size()-1]);
+
+    // generates Arcs from negativeVertices and adds to negativeCycle Walk
     for (int vtx_it = negativeVertices.size()-1; vtx_it >= 0; vtx_it--) {
       // generates Arcs from negativeVertices
       Arc negative_arc;
@@ -138,8 +142,11 @@ has_negative_cycle(Digraph& digraph)
       //adds to negativeCycle Walk
       negativeCycle.extend(negative_arc);
     }
+
+    // returns Negative Cycle
     return {true, NegativeCycle(negativeCycle), boost::none};
   }
+  // no negative cycles
   else {
     vtx_iterator_type vtx_it, vtx_end;
     vector<double> y(num_vertices(digraph), 0.0);
