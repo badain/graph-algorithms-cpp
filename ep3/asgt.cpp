@@ -190,7 +190,7 @@ FeasibleMultiplier build_feasmult(const FeasiblePotential& feaspot,
   // get feaspot for each vtx
   vector<double> aux_feaspot = feaspot.potential();
   vector<double> z(aux_feaspot.size(), 1.0);
-  for (int i = 0; i < aux_feaspot.size(); i++) {
+  for (int i = 0; i < int(aux_feaspot.size()); i++) {
     z[i] = exp(-aux_feaspot[i]); // returns weight to original cost
   }
 
