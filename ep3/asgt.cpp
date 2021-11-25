@@ -36,7 +36,7 @@ Digraph build_digraph(const Digraph& market)
   Digraph digraph(num_vertices(market));
 
   /* replace arc weight (currency ratio) with negative log */
-  edge_iterator_type edge_it, edge_end; // iterator edege, last edge
+  edge_iterator_type edge_it, edge_end; // iterator edge, last edge
   for (tie(edge_it, edge_end) = edges(market); edge_it != edge_end; ++edge_it) { // edge traversing
 
     // gets source and target vertex
