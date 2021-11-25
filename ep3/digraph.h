@@ -8,7 +8,7 @@
 /* Students may add any number of fields and methods to this struct */
 struct BundledVertex
 {
-  int d; // cumulative path weight
+  double d; // cumulative path weight
   BundledVertex() : d(0.0) {}
 };
 
