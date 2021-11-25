@@ -3,6 +3,7 @@
 #include <utility>              // for std::get
 #include <tuple>
 #include <vector>
+#include <math.h>              // for log
 
 #define BOOST_ALLOW_DEPRECATED_HEADERS // silence warnings
 #include <boost/graph/adjacency_list.hpp>
@@ -31,8 +32,26 @@ Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
    target execution time = O(n+m)  */
 Digraph build_digraph(const Digraph& market)
 {
-  /* placeholder for NRVO 
-  Digraph digraph(num_vertices(market));*/
+  /* placeholder for NRVO */
+  Digraph digraph(num_vertices(market));
+
+  /* replace arc weight (currency ratio) with negative log */
+  edge_iterator_type edge_it, edge_end; // iterator edege, last edge
+  for (tie(edge_it, edge_end) = edges(market); edge_it != edge_end; ++edge_it) { // edge traversing
+
+    // gets source and target vertex
+    Vertex u = source(*edge_it, digraph);
+    Vertex v = target(*edge_it, digraph);
+
+    // adds edge to auxiliary
+    Arc a;
+    std::tie(a, std::ignore) = add_edge(u, v, digraph);
+
+    // process auxiliary to negative log
+    digraph[a].cost = -log(market[*edge_it].cost);
+    // cout << u+1 << " " << v+1 << " " << digraph[a].cost << endl;
+
+  }
 
   /* flip some signs in the arc costs below to exercise the many
    * execution pathways */
@@ -44,7 +63,7 @@ Digraph build_digraph(const Digraph& market)
   std::tie(a1, std::ignore) = add_edge(1, 0, digraph);
   digraph[a1].cost = -17.0; */
  
-  return market;
+  return digraph;
 }
 
 /* The relaxation technique evaluates if there is a shortest possible distance by updating its property d every time a shortest path is found. */
