@@ -130,8 +130,13 @@ has_negative_cycle(Digraph& digraph)
   if(negativeVertices.size() > 0) {
     Walk negativeCycle(digraph, negativeVertices[negativeVertices.size()-1]);
     for (int vtx_it = negativeVertices.size()-1; vtx_it >= 0; vtx_it--) {
-      const Arc& a0 = *(out_edges(negativeVertices[vtx_it], digraph).first);
-      negativeCycle.extend(a0);
+      // generates Arcs from negativeVertices
+      Arc negative_arc;
+      if(vtx_it != 0) tie(negative_arc, std::ignore) = edge(negativeVertices[vtx_it], negativeVertices[vtx_it-1], digraph);
+      else tie(negative_arc, std::ignore) = edge(negativeVertices[vtx_it], negativeVertices[negativeVertices.size()-1], digraph);
+
+      //adds to negativeCycle Walk
+      negativeCycle.extend(negative_arc);
     }
     return {true, NegativeCycle(negativeCycle), boost::none};
   }
