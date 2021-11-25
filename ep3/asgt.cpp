@@ -47,20 +47,21 @@ Digraph build_digraph(const Digraph& market)
     Arc a;
     std::tie(a, std::ignore) = add_edge(u, v, digraph);
 
-    // process auxiliary to negative log
+    // process auxiliary to negative log so the Bellman-Ford Alggorithm can identify the existence of loophole cycles
     digraph[a].cost = -log(market[*edge_it].cost);
   }
 
   return digraph;
 }
 
-/* every vtx adjacent to a -INF weighted vtx is also a member of the negative cycle*/
+/* every vtx adjacent to a -INF weighted vtx is also a member of the negative cycle */
 void discover_negative_cycle(Digraph& digraph, Vertex& vtx, vector<Vertex>& predecessor, vector<Vertex>& negativeVertices) {
-  Vertex vtx_pi = predecessor[vtx];
+  Vertex vtx_pi = predecessor[vtx]; // gets vtx predecessor in the Shortest Path Tree
+
   if(digraph[vtx].color == true) {   // if vtx was discovered as negative
     negativeVertices.push_back(vtx); // pushes vtx to negative cycle
 
-    if(digraph[vtx_pi].color == false) { // checks if predecessor is not discovered
+    if(digraph[vtx_pi].color == false) { // checks if predecessor is not discovered (recurssion ends when predecessor was already discovered, thus reaching a cycle)
       digraph[vtx_pi].color = true;      // discoveres predecessor as negative
       discover_negative_cycle(digraph, vtx_pi, predecessor, negativeVertices); // sends predecessor recursively
     }
@@ -72,7 +73,7 @@ void relax(Digraph& digraph, Vertex& u, Vertex& v, double& weight, vector<Vertex
 
   if(digraph[v].d > digraph[u].d + weight) { // if there is a shortest path between u and v (if previous distance is larger than new distance)
     digraph[v].d  = digraph[u].d + weight;   // v is tagged with a new shortest distance
-    predecessor[v] = u;                    // u is the proper v predecessor in the Shortest Path Tree
+    predecessor[v] = u;                      // u is the proper v predecessor in the Shortest Path Tree
   }
 
 }
@@ -86,14 +87,13 @@ has_negative_cycle(Digraph& digraph)
 
   /* initialization */
   vector<Vertex> predecessor(num_vertices(digraph), null_vtx); // predecessor of each vtx
-  vector<Vertex> negativeVertices;
-  vector<Arc> negativeEdges;
+  vector<Vertex> negativeVertices; // vertices in the negative cycle
 
   // relax each edges |V| - 1 times
   for(int i = 0; i < int(num_vertices(digraph)-1); i++) {
 
     // iterate every edge in digraph
-    edge_iterator_type edge_it, edge_end; // iterator edege, last edge
+    edge_iterator_type edge_it, edge_end; // iterator edge, last edge
     for (tie(edge_it, edge_end) = edges(digraph); edge_it != edge_end; ++edge_it) { // edge traversing
       
       // gets source and target vertex
@@ -129,7 +129,7 @@ has_negative_cycle(Digraph& digraph)
   
   // if there is a negative cycle
   if(negativeVertices.size() > 0) {
-    // stores the necgative cycle in a Walk object
+    // stores the negative cycle in a Walk object
     Walk negativeCycle(digraph, negativeVertices[negativeVertices.size()-1]);
 
     // generates Arcs from negativeVertices and adds to negativeCycle Walk
@@ -148,12 +148,14 @@ has_negative_cycle(Digraph& digraph)
   }
   // no negative cycles
   else {
+    vector<double> feaspot(num_vertices(digraph), 0.0); // stores feasible multipliers in a vector
+
+    // iterates digraph by vtx and stores prop d in feaspot
     vtx_iterator_type vtx_it, vtx_end;
-    vector<double> y(num_vertices(digraph), 0.0);
-    for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
-      y[*vtx_it] = digraph[*vtx_it].d;
-    }
-    return {false, boost::none, FeasiblePotential(digraph, y)};
+    for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) feaspot[*vtx_it] = digraph[*vtx_it].d;
+
+    // returns feasible potential
+    return {false, boost::none, FeasiblePotential(digraph, feaspot)};
   }
 }
 
@@ -164,6 +166,7 @@ Loophole build_loophole(const NegativeCycle& negcycle,
   vector<Arc> negativeArcs = negcycle.get();
   Vertex source_vtx = source(negativeArcs[0], market);
 
+  // converts the aux_digraph's negative cycle in the market loophole
   Walk w(market, source_vtx);
   for (auto arc : negativeArcs) {
     Vertex u = source(arc, aux_digraph);
@@ -188,7 +191,7 @@ FeasibleMultiplier build_feasmult(const FeasiblePotential& feaspot,
   vector<double> aux_feaspot = feaspot.potential();
   vector<double> z(aux_feaspot.size(), 1.0);
   for (int i = 0; i < aux_feaspot.size(); i++) {
-    z[i] = exp(-aux_feaspot[i]);
+    z[i] = exp(-aux_feaspot[i]); // returns weight to original cost
   }
 
   // encourage RVO
