@@ -20,8 +20,7 @@ struct BundledVertex
 struct BundledArc
 {
   double cost;
-  double cost_log;
-  BundledArc() : cost(0.0), cost_log(0.0) {}
+  BundledArc() : cost(0.0) {}
 };
 
 /* the remainder of the file must not be changed */
