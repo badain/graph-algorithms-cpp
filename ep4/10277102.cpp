@@ -41,6 +41,8 @@ typedef boost::graph_traits<Digraph>::edge_iterator      arc_iterator_type; // a
 typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // adj
 Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
 
+bool DEBUG = false;
+
 /* INPUT */
 auto read_network(istream& is) {
 
@@ -117,6 +119,14 @@ int main(int argc, char** argv)
     auto data = read_network(cin); // data.network data.network_arcs data.source data.target
 
     bfs(data.network, data.source, data.target);
+
+    /* DEBUG */
+    if(DEBUG) {
+    vtx_iterator_type vtx_it, vtx_end;
+    for (tie(vtx_it, vtx_end) = vertices(data.network); vtx_it != vtx_end; ++vtx_it) {
+      cout << (*vtx_it)+1 << " " << data.network[*vtx_it].color << " " << data.network[*vtx_it].d << " " << ((*vtx_it) == data.source) << " " << ((*vtx_it) == data.target) << endl;
+    }
+    }
 
     return EXIT_SUCCESS;
 }
