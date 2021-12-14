@@ -75,7 +75,7 @@ auto read_network(istream& is) {
 /* MAIN */
 int main(int argc, char** argv)
 {
-    auto network_data = read_network(cin);
+    auto data = read_network(cin);
 
     return EXIT_SUCCESS;
 }
