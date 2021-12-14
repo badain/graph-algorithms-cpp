@@ -73,12 +73,50 @@ auto read_network(istream& is) {
 
 }
 
+/* BFS */
+void bfs(Digraph& digraph, Vertex& source, Vertex& target) {
+
+  // initialization
+  vtx_iterator_type vtx_it, vtx_end;
+  for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
+    digraph[*vtx_it].color = false;
+    digraph[*vtx_it].d = 0;
+  }
+  vector<Vertex> predecessor(num_vertices(digraph), null_vtx); // predecessor reset
+
+  // start procedure by tagging source
+  digraph[source].color = true;
+  queue<Vertex> bfs_queue; bfs_queue.push(source); // FIFO
+
+  // bfs traversal
+  while(!bfs_queue.empty()) {
+    // removes u from traversing queue
+    Vertex u = bfs_queue.front();
+    bfs_queue.pop();
+
+    // visits u decendents
+    adj_iterator_type adj_it, adj_end;
+    for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) {
+      if(!digraph[*adj_it].color) {
+        digraph[*adj_it].color = true;
+        bfs_queue.push(*adj_it);
+        digraph[*adj_it].d = digraph[u].d + 1;
+        predecessor[*adj_it] = u;
+      }
+    }
+  
+  }
+
+}
+
 /* EDMONDS */
 
 /* MAIN */
 int main(int argc, char** argv)
 {
     auto data = read_network(cin); // data.network data.network_arcs data.source data.target
+
+    bfs(data.network, data.source, data.target);
 
     return EXIT_SUCCESS;
 }
