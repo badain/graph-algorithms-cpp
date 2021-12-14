@@ -1,3 +1,5 @@
+#include <cstdlib> // EXIT_SUCCESS EXIT_FAILURE
+
 #define BOOST_ALLOW_DEPRECATED_HEADERS // silence warnings
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
@@ -32,3 +34,9 @@ typedef boost::graph_traits<Digraph>::vertex_iterator    vtx_iterator_type; // v
 typedef boost::graph_traits<Digraph>::edge_iterator      arc_iterator_type; // arc
 typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // adj
 Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
+
+/* MAIN */
+int main(int argc, char** argv)
+{
+    return EXIT_SUCCESS;
+}
