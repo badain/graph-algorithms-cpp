@@ -22,7 +22,8 @@ struct BundledVertex
 struct BundledArc
 {
   double capacity;
-  BundledArc() : capacity(0.0) {}
+  double flow;
+  BundledArc() : capacity(0.0), flow(0.0) {}
 };
 
 typedef boost::adjacency_list<boost::vecS,
@@ -71,6 +72,8 @@ auto read_network(istream& is) {
     return network_data{network, network_arcs, source, target};
 
 }
+
+/* EDMONDS */
 
 /* MAIN */
 int main(int argc, char** argv)
