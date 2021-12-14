@@ -24,4 +24,11 @@ typedef boost::adjacency_list<boost::vecS,
                               BundledVertex,
                               BundledArc> Digraph;
 typedef boost::graph_traits<Digraph>::vertex_descriptor Vertex;
-typedef boost::graph_traits<Digraph>::edge_descriptor Arc;
+typedef boost::graph_traits<Digraph>::edge_descriptor   Arc;
+
+
+/* DIGRAPH ITERATORS */
+typedef boost::graph_traits<Digraph>::vertex_iterator    vtx_iterator_type; // vtx
+typedef boost::graph_traits<Digraph>::edge_iterator      arc_iterator_type; // arc
+typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // adj
+Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
