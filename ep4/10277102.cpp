@@ -77,7 +77,7 @@ auto read_network(istream& is) {
 }
 
 /* BFS */
-int bfs(Digraph& digraph, Vertex& source, Vertex& target) {
+int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predecessor) {
 
   // initialization
   vtx_iterator_type vtx_it, vtx_end;
@@ -85,7 +85,7 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target) {
     digraph[*vtx_it].color = false;
     digraph[*vtx_it].d = 0;
   }
-  vector<Vertex> predecessor(num_vertices(digraph), null_vtx); // predecessor reset
+  memset(&predecessor[0], null_vtx, predecessor.size() * sizeof predecessor[0]); // predecessor reset
 
   // start procedure by tagging source
   digraph[source].color = true;
@@ -136,8 +136,10 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target) {
 int main(int argc, char** argv)
 {
     auto data = read_network(cin); // data.network data.network_arcs data.source data.target
+    vector<Vertex> predecessor(num_vertices(data.network), null_vtx); // predecessors pi
 
-    int min_res_capacity = bfs(data.network, data.source, data.target);
+    int min_res_capacity = bfs(data.network, data.source, data.target, predecessor);
+
 
     /* DEBUG */
     if(DEBUG) {
