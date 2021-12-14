@@ -1,9 +1,10 @@
 /* DEPENDENCIES */
 #include <cstdlib> // size_t EXIT_SUCCESS EXIT_FAILURE
 
-#include <iostream> // cin cout
-#include <tuple>    // tie ignore
-#include <queue>    // queue
+#include <algorithm> // min
+#include <iostream>  // cin cout
+#include <tuple>     // tie ignore
+#include <queue>     // queue
 
 #define BOOST_ALLOW_DEPRECATED_HEADERS // silence warnings
 #include <boost/graph/adjacency_list.hpp>
@@ -21,9 +22,9 @@ struct BundledVertex
 };
 struct BundledArc
 {
-  double capacity;
-  double flow;
-  BundledArc() : capacity(0.0), flow(0.0) {}
+  int capacity;
+  int flow;
+  BundledArc() : capacity(0), flow(0) {}
 };
 
 typedef boost::adjacency_list<boost::vecS,
@@ -76,7 +77,7 @@ auto read_network(istream& is) {
 }
 
 /* BFS */
-void bfs(Digraph& digraph, Vertex& source, Vertex& target) {
+int bfs(Digraph& digraph, Vertex& source, Vertex& target) {
 
   // initialization
   vtx_iterator_type vtx_it, vtx_end;
@@ -105,12 +106,27 @@ void bfs(Digraph& digraph, Vertex& source, Vertex& target) {
         digraph[*adj_it].color = true;         // marks as visited
         digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
         predecessor[*adj_it] = u;              // BF-tree: path to source
-        bfs_queue.push(*adj_it); // schedule visit to decents of decent
-      }
 
+        if((*adj_it) == target) { // if there is a path, returns minimal residual capacity of the path
+          Arc uv; tie(uv, std::ignore) = edge(u, (*adj_it), digraph);
+          int min_res_capacity = (digraph[uv].capacity - digraph[uv].flow);
+
+          // traverses st-path
+          for (Vertex v = (*adj_it); v != source; v = predecessor[v]) {
+            Arc uv; tie(uv, std::ignore) = edge(predecessor[v], v, digraph);
+            min_res_capacity = min(min_res_capacity, (digraph[uv].capacity - digraph[uv].flow));
+          }
+
+          return min_res_capacity;
+        }
+        
+
+        bfs_queue.push(*adj_it); // schedule visit to decendents of decendent
+      }
     }
-  
   }
+
+  return 0;
 
 }
 
@@ -121,7 +137,7 @@ int main(int argc, char** argv)
 {
     auto data = read_network(cin); // data.network data.network_arcs data.source data.target
 
-    bfs(data.network, data.source, data.target);
+    int min_res_capacity = bfs(data.network, data.source, data.target);
 
     /* DEBUG */
     if(DEBUG) {
