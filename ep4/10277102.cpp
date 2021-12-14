@@ -41,7 +41,14 @@ typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // a
 Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
 
 /* INPUT */
-Digraph read_network(istream& is) {
+auto read_network(istream& is) {
+
+    struct network_data {
+        Digraph network;
+        queue<Arc> network_arcs;
+        Vertex source;
+        Vertex target;
+    };
 
     typename graph_traits<Digraph>::vertices_size_type n; is >> n; // number of vertices
 
@@ -61,14 +68,14 @@ Digraph read_network(istream& is) {
         network_arcs.push(a);
     }
 
-    return network;
+    return network_data{network, network_arcs, source, target};
 
 }
 
 /* MAIN */
 int main(int argc, char** argv)
 {
-    Digraph network{read_network(cin)};
+    auto network_data = read_network(cin);
 
     return EXIT_SUCCESS;
 }
