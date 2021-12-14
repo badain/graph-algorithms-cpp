@@ -99,12 +99,15 @@ void bfs(Digraph& digraph, Vertex& source, Vertex& target) {
     // visits u decendents
     adj_iterator_type adj_it, adj_end;
     for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) {
+
+      // visits unvisited decendent
       if(!digraph[*adj_it].color) {
-        digraph[*adj_it].color = true;
-        bfs_queue.push(*adj_it);
-        digraph[*adj_it].d = digraph[u].d + 1;
-        predecessor[*adj_it] = u;
+        digraph[*adj_it].color = true;         // marks as visited
+        digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
+        predecessor[*adj_it] = u;              // BF-tree: path to source
+        bfs_queue.push(*adj_it); // schedule visit to decents of decent
       }
+
     }
   
   }
