@@ -57,8 +57,8 @@ auto read_network(istream& is) {
 
     size_t m; is >> m; // number of arcs
 
-    Vertex source; is >> source; // source vtx
-    Vertex target; is >> target; // target vtx
+    Vertex source; is >> source; source -= 1;// source vtx
+    Vertex target; is >> target; target -= 1;// target vtx
 
     queue<Arc> network_arcs;
 
