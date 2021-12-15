@@ -24,7 +24,8 @@ struct BundledArc
 {
   int capacity;
   int flow;
-  BundledArc() : capacity(0), flow(0) {}
+  int order;
+  BundledArc() : capacity(0), flow(0), order(0) {}
 };
 
 typedef boost::adjacency_list<boost::vecS,
@@ -42,7 +43,7 @@ typedef boost::graph_traits<Digraph>::edge_iterator      arc_iterator_type; // a
 typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // adj
 Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
 
-bool DEBUG = false;
+bool DEBUG = true;
 bool PRINT = true;
 
 /* INPUT */
@@ -143,18 +144,26 @@ int main(int argc, char** argv)
     vector<Vertex> predecessor(num_vertices(data.network), null_vtx); // predecessors pi
 
     // generate residual network graph
-    vector<Arc> network_arcs_a, network_arcs_b;
+    vector<Arc> network_arcs_a, network_arcs_b; // positive forward arcs, negative backwards arcs
     Digraph residual_network(num_vertices(data.network));
+    size_t order = 1; // keeps track of arc ordem for output specifications
     for(Arc arc : data.network_arcs) {
+      // gets original arc vertices
       Vertex u = source(arc, data.network);
       Vertex v = target(arc, data.network);
 
+      // forward arcs
       Arc a; tie(a, ignore) = add_edge(u, v, residual_network);
+      residual_network[a].order = order; // arc order
       residual_network[a].capacity = data.network[arc].capacity;
       network_arcs_a.push_back(a);
 
+      // backward arcs
       Arc b; tie(b, ignore) = add_edge(v, u, residual_network);
+      residual_network[b].order = order; // arc order
       network_arcs_b.push_back(b);
+
+      order++;
     }
     
     // flow augmentation
@@ -162,6 +171,8 @@ int main(int argc, char** argv)
     max_flow = min_res_capacity = 0;
 
     while((min_res_capacity = bfs(residual_network, data.source, data.target, predecessor))) { // there is a path p from s to t in the residual network Gf
+      
+      // [output 0] residual capacities for each arc, ordered
       if(PRINT) {
         for (size_t i = 0; i < network_arcs_a.size(); ++i) {
           cout << (residual_network[network_arcs_a[i]].capacity - residual_network[network_arcs_a[i]].flow) << " "
@@ -169,11 +180,12 @@ int main(int argc, char** argv)
         }
         cout << "0 " << min_res_capacity << " ";
       }
+
       // store max_flow
       max_flow += min_res_capacity;
 
       // updates flow along the st-path P
-      size_t path_length = 0;
+      vector<size_t> path_order;
       for (Vertex v = data.target; v != data.source; v = predecessor[v]) { // for each edge in the augmenting path
         Vertex u = predecessor[v];
         // forward arc
@@ -182,12 +194,19 @@ int main(int argc, char** argv)
         // backward arc
         Arc vu; tie(vu, std::ignore) = edge(v, u, residual_network);
         residual_network[vu].flow = residual_network[vu].flow - min_res_capacity;
-        // path lenght
-        path_length += 1;
-        if(DEBUG) cout << uv << " "; // precisa buscar qual a ordem destes arcos na ordem de chegada
+        // path output
+        path_order.push_back(residual_network[uv].order);
       }
-      cout << path_length << endl;
-      // print residual capacities + shortest augmenting path
+
+      // [output 0] shortest augmenting path (lenght + arcs)
+      if(PRINT) {
+        cout << path_order.size() << endl;
+        for (auto it = path_order.rbegin(); it != path_order.rend(); ++it)
+        {
+          cout << *it << " ";
+        }
+        cout << endl;
+      }
 
     }
 
