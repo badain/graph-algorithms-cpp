@@ -138,7 +138,27 @@ int main(int argc, char** argv)
     auto data = read_network(cin); // data.network data.network_arcs data.source data.target
     vector<Vertex> predecessor(num_vertices(data.network), null_vtx); // predecessors pi
 
-    int min_res_capacity = bfs(data.network, data.source, data.target, predecessor);
+    // flow augmentation
+    int max_flow, min_res_capacity;
+    max_flow = min_res_capacity = 0;
+
+    while((min_res_capacity = bfs(data.network, data.source, data.target, predecessor))) { // there is a path p from s to t in the residual network Gf
+      // store max_flow
+      max_flow += min_res_capacity;
+
+      // updates flow along the st-path P
+      for (Vertex v = data.target; v != data.source; v = predecessor[v]) { // for each edge in the augmenting path
+        Vertex u = predecessor[v];
+        // forward arc
+        Arc uv; tie(uv, std::ignore) = edge(u, v, data.network);
+        data.network[uv].flow = data.network[uv].flow + min_res_capacity;
+        // backward arc
+        // Arc vu; tie(vu, std::ignore) = edge(v, u, data.network);
+        // data.network[vu].flow = data.network[vu].flow - min_res_capacity;
+      }
+
+      // update residual graph
+    }
 
 
     /* DEBUG */
