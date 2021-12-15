@@ -109,7 +109,6 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predec
         predecessor[*adj_it] = u;              // BF-tree: path to source
 
         if((*adj_it) == target) { // if there is a path, returns minimal residual capacity of the path
-          Arc uv; tie(uv, std::ignore) = edge(u, (*adj_it), digraph);
           int min_res_capacity = (digraph[uv].capacity - digraph[uv].flow);
 
           // traverses st-path
