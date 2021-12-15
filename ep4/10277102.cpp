@@ -50,35 +50,35 @@ Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
 /* INPUT */
 auto read_network(istream& is) {
 
-    struct network_data {
-        Digraph network;
-        vector<Arc> network_arcs;
-        Vertex source;
-        Vertex target;
-    };
+  struct network_data {
+    Digraph network;
+    vector<Arc> network_arcs;
+    Vertex source;
+    Vertex target;
+  };
 
-    typename graph_traits<Digraph>::vertices_size_type n; is >> n; // number of vertices
+  typename graph_traits<Digraph>::vertices_size_type n; is >> n; // number of vertices
 
-    Digraph network(n);
+  Digraph network(n);
 
-    size_t m; is >> m; // number of arcs
+  size_t m; is >> m; // number of arcs
 
-    Vertex source; is >> source; source -= 1;// source vtx
-    Vertex target; is >> target; target -= 1;// target vtx
+  Vertex source; is >> source; source -= 1;// source vtx
+  Vertex target; is >> target; target -= 1;// target vtx
 
-    network_data data;
-    data.network = network;
-    data.source = source;
-    data.target = target;
+  network_data data;
+  data.network = network;
+  data.source = source;
+  data.target = target;
 
-    while (m--) {
-        int u, v; is >> u >> v;
-        Arc a; tie(a, ignore) = add_edge(--u, --v, data.network);
-        is >> data.network[a].capacity;
-        data.network_arcs.push_back(a);
-    }
+  while (m--) {
+    int u, v; is >> u >> v;
+    Arc a; tie(a, ignore) = add_edge(--u, --v, data.network);
+    is >> data.network[a].capacity;
+    data.network_arcs.push_back(a);
+  }
 
-    return data;
+  return data;
 
 }
 
