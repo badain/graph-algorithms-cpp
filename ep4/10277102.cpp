@@ -156,14 +156,14 @@ int main(int argc, char** argv)
       // forward arcs
       Arc a; tie(a, ignore) = add_edge(u, v, residual_network);
       residual_network[a].order = order; // arc order
-      residual_network[a].capacity = data.network[arc].capacity;
-      network_arcs_a.push_back(a);
+      residual_network[a].capacity = data.network[arc].capacity; // forward arc capacity
+      network_arcs_a.push_back(a); // tracks arc order
 
       // backward arcs
       Arc b; tie(b, ignore) = add_edge(v, u, residual_network);
       residual_network[b].order = order; // arc order
       residual_network[b].phi = false;   // arc direction
-      network_arcs_b.push_back(b);
+      network_arcs_b.push_back(b); // tracks arc order
 
       order++;
     }
@@ -197,8 +197,8 @@ int main(int argc, char** argv)
         Arc vu; tie(vu, std::ignore) = edge(v, u, residual_network);
         residual_network[vu].flow = residual_network[vu].flow - min_res_capacity;
         // path output
-        if(residual_network[uv].phi) path_order.push_back(residual_network[uv].order);
-        else path_order.push_back(-residual_network[uv].order);
+        if(residual_network[uv].phi) path_order.push_back(residual_network[uv].order); // forward arc
+        else path_order.push_back(-residual_network[uv].order); // backward arc
       }
 
       // [output 0] shortest augmenting path (lenght + arcs)
