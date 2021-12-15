@@ -63,8 +63,8 @@ auto read_network(istream& is) {
 
   size_t m; is >> m; // number of arcs
 
-  Vertex source; is >> source; source -= 1;// source vtx
-  Vertex target; is >> target; target -= 1;// target vtx
+  Vertex source; is >> source; source -= 1; // source vtx
+  Vertex target; is >> target; target -= 1; // target vtx
 
   network_data data;
   data.network = network;
@@ -204,8 +204,7 @@ int main(int argc, char** argv)
       // [output 0] shortest augmenting path (lenght + arcs)
       if(PRINT) {
         cout << path_order.size() << endl;
-        for (auto it = path_order.rbegin(); it != path_order.rend(); ++it)
-        {
+        for (auto it = path_order.rbegin(); it != path_order.rend(); ++it) {
           cout << *it << " ";
         }
         cout << endl;
