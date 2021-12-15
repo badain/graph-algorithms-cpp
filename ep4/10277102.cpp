@@ -101,8 +101,9 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predec
     adj_iterator_type adj_it, adj_end;
     for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) {
 
-      // visits unvisited decendent
-      if(!digraph[*adj_it].color) {
+      // visits unvisited decendent w/ available residual capacity
+      Arc uv; tie(uv, std::ignore) = edge(u, (*adj_it), digraph);
+      if(!digraph[*adj_it].color && ((digraph[uv].capacity - digraph[uv].flow) > 0)) {
         digraph[*adj_it].color = true;         // marks as visited
         digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
         predecessor[*adj_it] = u;              // BF-tree: path to source
