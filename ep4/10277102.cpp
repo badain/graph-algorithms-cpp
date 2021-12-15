@@ -13,6 +13,9 @@
 using namespace std;
 using namespace boost;
 
+bool DEBUG = false;
+bool PRINT = true;
+
 /* DIGRAPH */
 struct BundledVertex
 {
@@ -43,9 +46,6 @@ typedef boost::graph_traits<Digraph>::vertex_iterator    vtx_iterator_type; // v
 typedef boost::graph_traits<Digraph>::edge_iterator      arc_iterator_type; // arc
 typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // adj
 Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
-
-bool DEBUG = false;
-bool PRINT = true;
 
 /* INPUT */
 auto read_network(istream& is) {
