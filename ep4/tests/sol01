@@ -1,3 +1,4 @@
+// residual capacities (positive, negative)
 16 0
 13 0
 10 0
@@ -8,8 +9,10 @@
 8 0
 20 0
 4 0
+// shortest augmenting path (0, min_res_cap, path length) /n each arc
 0 4 3
 2 7 10
+// residual capacities (positive, negative)
 16 0
 9 4
 10 0
@@ -20,8 +23,10 @@
 8 0
 20 0
 0 4
+// shortest augmenting path (0, min_res_cap, path length) /n each arc
 0 12 3
 1 5 9
+// residual capacities (positive, negative)
 4 12
 9 4
 10 0
@@ -32,8 +37,10 @@
 8 0
 8 12
 0 4
+// shortest augmenting path (0, min_res_cap, path length) /n each arc
 0 8 4
 2 7 8 9
+// residual capacities (positive, negative)
 4 12
 1 12
 10 0
@@ -44,4 +51,5 @@
 0 8
 0 20
 0 4
+// end = no augmenting path (1, max_flow, source cut)
 1 24 4 1 2 4 5
