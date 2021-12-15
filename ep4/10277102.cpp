@@ -126,7 +126,7 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predec
     }
   }
 
-  return 0;
+  return 0; // no st-path was found
 
 }
 
