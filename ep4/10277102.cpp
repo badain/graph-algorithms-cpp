@@ -49,7 +49,7 @@ auto read_network(istream& is) {
 
     struct network_data {
         Digraph network;
-        queue<Arc> network_arcs;
+        vector<Arc> network_arcs;
         Vertex source;
         Vertex target;
     };
@@ -63,16 +63,19 @@ auto read_network(istream& is) {
     Vertex source; is >> source; source -= 1;// source vtx
     Vertex target; is >> target; target -= 1;// target vtx
 
-    queue<Arc> network_arcs;
+    network_data data;
+    data.network = network;
+    data.source = source;
+    data.target = target;
 
     while (m--) {
         int u, v; is >> u >> v;
-        Arc a; tie(a, ignore) = add_edge(--u, --v, network);
-        is >> network[a].capacity;
-        network_arcs.push(a);
+        Arc a; tie(a, ignore) = add_edge(--u, --v, data.network);
+        is >> data.network[a].capacity;
+        data.network_arcs.push_back(a);
     }
 
-    return network_data{network, network_arcs, source, target};
+    return data;
 
 }
 
