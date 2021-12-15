@@ -1,3 +1,6 @@
+/**********************************************************************
+* Author: Rafael Badain @ University of Sao Paulo
+**********************************************************************/
 /* DEPENDENCIES */
 #include <cstdlib> // size_t EXIT_SUCCESS EXIT_FAILURE
 
