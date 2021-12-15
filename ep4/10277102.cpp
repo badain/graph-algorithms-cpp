@@ -112,7 +112,7 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predec
 
       // visits unvisited decendent w/ available residual capacity
       Arc uv; tie(uv, std::ignore) = edge(u, (*adj_it), digraph);
-      if(!digraph[*adj_it].color && ((digraph[uv].capacity - digraph[uv].flow) > 0)) {
+      if(!digraph[*adj_it].color && ((digraph[uv].capacity - digraph[uv].flow) > 0)) { // minimum residual capacity > 0 garantees residual digraph consistency
         digraph[*adj_it].color = true;         // marks as visited
         digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
         predecessor[*adj_it] = u;              // BF-tree: path to source
