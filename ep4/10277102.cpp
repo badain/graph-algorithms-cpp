@@ -25,7 +25,8 @@ struct BundledArc
   int capacity;
   int flow;
   int order;
-  BundledArc() : capacity(0), flow(0), order(0) {}
+  bool phi;
+  BundledArc() : capacity(0), flow(0), order(0), phi(true) {}
 };
 
 typedef boost::adjacency_list<boost::vecS,
@@ -161,6 +162,7 @@ int main(int argc, char** argv)
       // backward arcs
       Arc b; tie(b, ignore) = add_edge(v, u, residual_network);
       residual_network[b].order = order; // arc order
+      residual_network[b].phi = false;   // arc direction
       network_arcs_b.push_back(b);
 
       order++;
@@ -185,7 +187,7 @@ int main(int argc, char** argv)
       max_flow += min_res_capacity;
 
       // updates flow along the st-path P
-      vector<size_t> path_order;
+      vector<int> path_order;
       for (Vertex v = data.target; v != data.source; v = predecessor[v]) { // for each edge in the augmenting path
         Vertex u = predecessor[v];
         // forward arc
@@ -195,7 +197,8 @@ int main(int argc, char** argv)
         Arc vu; tie(vu, std::ignore) = edge(v, u, residual_network);
         residual_network[vu].flow = residual_network[vu].flow - min_res_capacity;
         // path output
-        path_order.push_back(residual_network[uv].order);
+        if(residual_network[uv].phi) path_order.push_back(residual_network[uv].order);
+        else path_order.push_back(-residual_network[uv].order);
       }
 
       // [output 0] shortest augmenting path (lenght + arcs)
