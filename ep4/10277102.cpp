@@ -44,7 +44,7 @@ typedef boost::graph_traits<Digraph>::edge_iterator      arc_iterator_type; // a
 typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // adj
 Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
 
-bool DEBUG = true;
+bool DEBUG = false;
 bool PRINT = true;
 
 /* INPUT */
