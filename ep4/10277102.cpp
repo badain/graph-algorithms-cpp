@@ -215,11 +215,21 @@ int main(int argc, char** argv)
 
     // print residual capacities + max flow + source cut
     if(PRINT) {
+      // residual capacities
       for (size_t i = 0; i < network_arcs_a.size(); ++i) {
         cout << (residual_network[network_arcs_a[i]].capacity - residual_network[network_arcs_a[i]].flow) << " "
              << (residual_network[network_arcs_b[i]].capacity - residual_network[network_arcs_b[i]].flow) << endl;
       }
-      cout << "1 " << max_flow << endl;
+      // max flow
+      cout << "1 " << max_flow << " ";
+      // source cut
+      vector<Vertex> cut; vtx_iterator_type vtx_it, vtx_end;
+      for (tie(vtx_it, vtx_end) = vertices(residual_network); vtx_it != vtx_end; ++vtx_it) {
+        if(residual_network[*vtx_it].color) cut.push_back((*vtx_it)+1);
+      }
+      cout << cut.size();
+      for (auto i : cut) cout << " " << i;
+      cout << endl;
     }
 
     if(DEBUG) cout << "max_flow: " << max_flow << endl;
