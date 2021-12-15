@@ -138,11 +138,22 @@ int main(int argc, char** argv)
     auto data = read_network(cin); // data.network data.network_arcs data.source data.target
     vector<Vertex> predecessor(num_vertices(data.network), null_vtx); // predecessors pi
 
+    // generate residual network graph
+    Digraph residual_network(num_vertices(data.network));
+    arc_iterator_type arc_it, arc_end;
+    for (tie(arc_it, arc_end) = edges(data.network); arc_it != arc_end; ++arc_it) {
+      Vertex u = source((*arc_it), data.network);
+      Vertex v = target((*arc_it), data.network);
+      Arc a; tie(a, ignore) = add_edge(u, v, residual_network);
+      residual_network[a].capacity = data.network[(*arc_it)].capacity;
+      Arc b; tie(b, ignore) = add_edge(v, u, residual_network);
+    }
+
     // flow augmentation
     int max_flow, min_res_capacity;
     max_flow = min_res_capacity = 0;
 
-    while((min_res_capacity = bfs(data.network, data.source, data.target, predecessor))) { // there is a path p from s to t in the residual network Gf
+    while((min_res_capacity = bfs(residual_network, data.source, data.target, predecessor))) { // there is a path p from s to t in the residual network Gf
       // store max_flow
       max_flow += min_res_capacity;
 
@@ -150,11 +161,11 @@ int main(int argc, char** argv)
       for (Vertex v = data.target; v != data.source; v = predecessor[v]) { // for each edge in the augmenting path
         Vertex u = predecessor[v];
         // forward arc
-        Arc uv; tie(uv, std::ignore) = edge(u, v, data.network);
-        data.network[uv].flow = data.network[uv].flow + min_res_capacity;
+        Arc uv; tie(uv, std::ignore) = edge(u, v, residual_network);
+        residual_network[uv].flow = residual_network[uv].flow + min_res_capacity;
         // backward arc
-        // Arc vu; tie(vu, std::ignore) = edge(v, u, data.network);
-        // data.network[vu].flow = data.network[vu].flow - min_res_capacity;
+        Arc vu; tie(vu, std::ignore) = edge(v, u, residual_network);
+        residual_network[vu].flow = residual_network[vu].flow - min_res_capacity;
       }
 
       // update residual graph
