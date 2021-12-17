@@ -16,17 +16,17 @@
 using namespace std;
 using namespace boost;
 
-bool DEBUG = true;
+bool DEBUG = false;
 bool PRINT = true;
 
 /* DIGRAPH */
 struct BundledVertex
 {
-  int d;
-  int f;
-  bool color; // used in BFS
+  int d; // used in BFS DFS
+  int f; // used in DFS
+  bool color; // used in BFS DFS
   bool visited; // used to obtain unique arcs for Df'
-  BundledVertex() : d(0.0), color(false), visited(false) {}
+  BundledVertex() : d(0), f(0), color(false), visited(false) {}
 };
 struct BundledArc
 {
@@ -87,6 +87,78 @@ auto read_network(istream& is) {
 
   return data;
 
+}
+
+/* DFS VISIT */
+void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecessor) {
+
+  // updates vtx u discovery (UNUSED)
+  time += 1;
+  digraph[u].d = time;
+
+  // explores u descendents
+  adj_iterator_type adj_it, adj_end;
+  for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) {
+
+    Vertex v = (*adj_it);
+
+    // if no predecessor has been assigned to v
+    if((predecessor[v] == null_vtx)) {
+      if(DEBUG) cout << "  parent: " << u+1 << " adj: " << v+1  << endl; // update
+      predecessor[v] = u;   // the current vtx is the predecessor for its decendents
+      dfs_visit(digraph, v, time, predecessor);
+    }
+    // if a predecessor has been assigned to v, checks if a replacement is viable
+    else if(predecessor[v] != null_vtx && predecessor[v] != u) {
+      // evaluates residual capacities
+      Arc uv; tie(uv, ignore) = edge(u, v, digraph);
+      Arc prev; tie(prev, ignore) = edge(predecessor[v], v, digraph);
+      int uv_residual   = (digraph[uv].capacity - digraph[uv].flow);     // current arc
+      int prev_residual = (digraph[prev].capacity - digraph[prev].flow); // arc of the previously assigned predecessor
+
+      // (st-flow g) definition requires the largest residual capacities
+      if(uv_residual > prev_residual) {
+        predecessor[v] = u;   // the current vtx is the predecessor for its decendents
+        if(DEBUG) cout << "- parent: " << u+1 << " adj: " << v+1 << endl; // replace
+        dfs_visit(digraph, v, time, predecessor);
+      }
+      else if(DEBUG) cout << "x parent: " << u+1 << " adj: " << v+1 << endl; // reject
+    }
+
+  }
+
+  // updates vtx u finish (UNUSED)
+  time += 1;
+  digraph[u].f = time;
+  digraph[u].color = true;
+}
+
+/* DFS */
+void dfs(Digraph& digraph, Vertex& source, Vertex& target) {
+
+  // initialization
+  vtx_iterator_type vtx_it, vtx_end;
+  for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
+    digraph[*vtx_it].d = 0;
+    digraph[*vtx_it].color = false;
+  }
+  vector<Vertex> predecessor(num_vertices(digraph), null_vtx);
+  int time = 0;
+
+  // dfs visits each vertex
+  for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
+    if(DEBUG) cout << "dfs_level: " << (*vtx_it)+1 << endl;
+    if(!digraph[*vtx_it].color) {
+      Vertex u = (*vtx_it);
+      dfs_visit(digraph, u, time, predecessor);
+    }
+  }
+
+  if(DEBUG) {
+    cout << "pred: ";
+    for(auto i : predecessor) cout << i+1 << " ";
+    cout << endl;
+  }
 }
 
 /* RESIDUAL DF' GENERATION */
@@ -195,7 +267,11 @@ int main(int argc, char** argv)
       order++;
     }
 
+    // generates residual df' neetwork digraph
     auto df_line = bfs(data.network, data.source, data.target, predecessor);
+
+    // calculates maximal feasible (st-flow) g
+    dfs(df_line.network, data.source, data.target);
 
     return EXIT_SUCCESS;
 }
