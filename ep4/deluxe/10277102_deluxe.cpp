@@ -22,9 +22,11 @@ bool PRINT = true;
 /* DIGRAPH */
 struct BundledVertex
 {
-  double d;
-  bool color;
-  BundledVertex() : d(0.0), color(false) {}
+  int d;
+  int f;
+  bool color; // used in BFS
+  bool visited; // used to obtain unique arcs for Df'
+  BundledVertex() : d(0.0), color(false), visited(false) {}
 };
 struct BundledArc
 {
@@ -85,8 +87,36 @@ auto read_network(istream& is) {
 
 }
 
+/* RESIDUAL DF' GENERATION */
+void generate_df_line(Digraph& digraph, Digraph& df_line, Vertex& current, vector<Vertex>& pi, vector<vector<Vertex>>& predecessor){
+  
+  if(!digraph[current].visited && pi.size() > 0) { // if current vector arcs were not extracted and is not the source
+
+    if(DEBUG) {
+      cout << current+1 << " |";
+      for(auto pred : pi) cout << " " << pred+1;
+      cout << endl;
+    }
+
+    digraph[current].visited = true; // avoids repetitions
+    for(auto pred : pi) { // for each predecessor of the current vtx
+      Arc a_original; tie(a_original, ignore) = edge(pred, current, digraph);
+      Arc a; tie(a, ignore) = add_edge(pred, current, df_line); // adds edge from predecessor to current vtx
+      df_line[a].capacity = digraph[a_original].capacity; // stores arc capacity
+      generate_df_line(digraph, df_line, pred, predecessor[pred], predecessor); // ads the predecessor arcs for each predecessor (if unvisited)
+    }
+  }
+
+}
+
 /* BFS */
-int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predecessor) {
+auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>>& predecessor) {
+
+  struct df_line_data {
+    Digraph network;
+    bool status;
+  };
+  df_line_data df_line;
 
   // initialization
   vtx_iterator_type vtx_it, vtx_end;
@@ -94,7 +124,6 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predec
     digraph[*vtx_it].color = false;
     digraph[*vtx_it].d = 0;
   }
-  memset(&predecessor[0], null_vtx, predecessor.size() * sizeof predecessor[0]); // predecessor reset
 
   // start procedure by tagging source
   digraph[source].color = true;
@@ -105,37 +134,36 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predec
     // removes u from traversing queue
     Vertex u = bfs_queue.front();
     bfs_queue.pop();
+    if(DEBUG) cout << "bfs_queue: " << u+1 << endl;
 
     // visits u decendents
     adj_iterator_type adj_it, adj_end;
     for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) {
-
-      // visits unvisited decendent w/ available residual capacity
-      Arc uv; tie(uv, std::ignore) = edge(u, (*adj_it), digraph);
-      if(!digraph[*adj_it].color && ((digraph[uv].capacity - digraph[uv].flow) > 0)) {
+      if(DEBUG) cout << "  adj: " << (*adj_it)+1 << endl;
+      // visits unvisited decendent
+      if(!digraph[*adj_it].color) {
         digraph[*adj_it].color = true;         // marks as visited
         digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
-        predecessor[*adj_it] = u;              // BF-tree: path to source
-
-        if((*adj_it) == target) { // if there is a path, returns minimal residual capacity of the path
-          int min_res_capacity = (digraph[uv].capacity - digraph[uv].flow);
-
-          // traverses st-path
-          for (Vertex v = (*adj_it); v != source; v = predecessor[v]) {
-            Arc uv; tie(uv, std::ignore) = edge(predecessor[v], v, digraph);
-            min_res_capacity = min(min_res_capacity, (digraph[uv].capacity - digraph[uv].flow));
-          }
-
-          return min_res_capacity;
-        }
-        
+        predecessor[*adj_it].push_back(u);     // BF-tree: path to source
 
         bfs_queue.push(*adj_it); // schedule visit to decendents of decendent
       }
+      // if a descendent was already visited (has another predecessor), also stores the current vtx IF they are in the same distance
+      else if(predecessor[*adj_it].size() > 0 && digraph[u].d == digraph[predecessor[*adj_it][0]].d) {
+        predecessor[*adj_it].push_back(u); // BF-tree: path to source
+      }
+
     }
   }
 
-  return 0; // no st-path was found
+  if(predecessor[target].size() > 0) { // calculates residual digraph Df'
+    generate_df_line(digraph, df_line.network, target, predecessor[target], predecessor); // starts generation from target
+    df_line.status = true;
+    return df_line;
+  }
+
+  df_line.status = false;
+  return df_line; // no st-path was found
 
 }
 
@@ -145,7 +173,8 @@ int bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<Vertex>& predec
 int main(int argc, char** argv)
 {
     auto data = read_network(cin); // data.network data.network_arcs data.source data.target
-    vector<Vertex> predecessor(num_vertices(data.network), null_vtx); // predecessors pi
+    vector<Vertex> pi; // list of predecessors of a vertex pi
+    vector<vector<Vertex>> predecessor(num_vertices(data.network), pi); // predecessors of each vtx of the network
 
     // generate residual network graph
     vector<Arc> network_arcs_a, network_arcs_b; // positive forward arcs, negative backwards arcs
@@ -170,79 +199,8 @@ int main(int argc, char** argv)
 
       order++;
     }
-    
-    // flow augmentation
-    int max_flow, min_res_capacity;
-    max_flow = min_res_capacity = 0;
 
-    while((min_res_capacity = bfs(residual_network, data.source, data.target, predecessor))) { // there is a path p from s to t in the residual network Gf
-      
-      // [output 0] residual capacities for each arc, ordered
-      if(PRINT) {
-        for (size_t i = 0; i < network_arcs_a.size(); ++i) {
-          cout << (residual_network[network_arcs_a[i]].capacity - residual_network[network_arcs_a[i]].flow) << " "
-               << (residual_network[network_arcs_b[i]].capacity - residual_network[network_arcs_b[i]].flow) << endl;
-        }
-        cout << "0 " << min_res_capacity << " ";
-      }
-
-      // store max_flow
-      max_flow += min_res_capacity;
-
-      // updates flow along the st-path P
-      vector<int> path_order;
-      for (Vertex v = data.target; v != data.source; v = predecessor[v]) { // for each edge in the augmenting path
-        Vertex u = predecessor[v];
-        // forward arc
-        Arc uv; tie(uv, std::ignore) = edge(u, v, residual_network);
-        residual_network[uv].flow = residual_network[uv].flow + min_res_capacity;
-        // backward arc
-        Arc vu; tie(vu, std::ignore) = edge(v, u, residual_network);
-        residual_network[vu].flow = residual_network[vu].flow - min_res_capacity;
-        // path output
-        if(residual_network[uv].phi) path_order.push_back(residual_network[uv].order); // forward arc
-        else path_order.push_back(-residual_network[uv].order); // backward arc
-      }
-
-      // [output 0] shortest augmenting path (lenght + arcs)
-      if(PRINT) {
-        cout << path_order.size() << endl;
-        for (auto it = path_order.rbegin(); it != path_order.rend(); ++it) {
-          cout << *it << " ";
-        }
-        cout << endl;
-      }
-
-    }
-
-    // print residual capacities + max flow + source cut
-    if(PRINT) {
-      // residual capacities
-      for (size_t i = 0; i < network_arcs_a.size(); ++i) {
-        cout << (residual_network[network_arcs_a[i]].capacity - residual_network[network_arcs_a[i]].flow) << " "
-             << (residual_network[network_arcs_b[i]].capacity - residual_network[network_arcs_b[i]].flow) << endl;
-      }
-      // max flow
-      cout << "1 " << max_flow << " ";
-      // source cut
-      vector<Vertex> cut; vtx_iterator_type vtx_it, vtx_end;
-      for (tie(vtx_it, vtx_end) = vertices(residual_network); vtx_it != vtx_end; ++vtx_it) {
-        if(residual_network[*vtx_it].color) cut.push_back((*vtx_it)+1);
-      }
-      cout << cut.size();
-      for (auto i : cut) cout << " " << i;
-      cout << endl;
-    }
-
-    if(DEBUG) cout << "max_flow: " << max_flow << endl;
-
-    /* DEBUG */
-    if(DEBUG) {
-    vtx_iterator_type vtx_it, vtx_end;
-    for (tie(vtx_it, vtx_end) = vertices(residual_network); vtx_it != vtx_end; ++vtx_it) {
-      cout << (*vtx_it)+1 << " " << residual_network[*vtx_it].color << " " << residual_network[*vtx_it].d << " " << ((*vtx_it) == data.source) << " " << ((*vtx_it) == data.target) << endl;
-    }
-    }
+    auto df_line = bfs(residual_network, data.source, data.target, predecessor);
 
     return EXIT_SUCCESS;
 }
