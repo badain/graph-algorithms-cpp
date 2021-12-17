@@ -16,7 +16,7 @@
 using namespace std;
 using namespace boost;
 
-bool DEBUG = false;
+bool DEBUG = true;
 bool PRINT = true;
 
 /* DIGRAPH */
@@ -76,10 +76,12 @@ auto read_network(istream& is) {
   data.source = source;
   data.target = target;
 
+  int order = 1; // keeps track of arc ordem for output specifications
   while (m--) {
     int u, v; is >> u >> v;
     Arc a; tie(a, ignore) = add_edge(--u, --v, data.network);
     is >> data.network[a].capacity;
+    data.network[a].order = order; order++;
     data.network_arcs.push_back(a);
   }
 
@@ -177,30 +179,23 @@ int main(int argc, char** argv)
     vector<vector<Vertex>> predecessor(num_vertices(data.network), pi); // predecessors of each vtx of the network
 
     // generate residual network graph
-    vector<Arc> network_arcs_a, network_arcs_b; // positive forward arcs, negative backwards arcs
-    Digraph residual_network(num_vertices(data.network));
-    size_t order = 1; // keeps track of arc ordem for output specifications
+    vector<Arc> network_arcs_b; // positive forward arcs, negative backwards arcs
+    size_t order = 1; 
     for(Arc arc : data.network_arcs) {
       // gets original arc vertices
       Vertex u = source(arc, data.network);
       Vertex v = target(arc, data.network);
 
-      // forward arcs
-      Arc a; tie(a, ignore) = add_edge(u, v, residual_network);
-      residual_network[a].order = order; // arc order
-      residual_network[a].capacity = data.network[arc].capacity; // forward arc capacity
-      network_arcs_a.push_back(a); // tracks arc order
-
       // backward arcs
-      Arc b; tie(b, ignore) = add_edge(v, u, residual_network);
-      residual_network[b].order = order; // arc order
-      residual_network[b].phi = false;   // arc direction
+      Arc b; tie(b, ignore) = add_edge(v, u, data.network);
+      data.network[b].order = order; // arc order
+      data.network[b].phi = false;   // arc direction
       network_arcs_b.push_back(b); // tracks arc order
 
       order++;
     }
 
-    auto df_line = bfs(residual_network, data.source, data.target, predecessor);
+    auto df_line = bfs(data.network, data.source, data.target, predecessor);
 
     return EXIT_SUCCESS;
 }
