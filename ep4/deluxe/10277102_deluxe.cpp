@@ -92,9 +92,9 @@ auto read_network(istream& is) {
 /* DFS VISIT */
 void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecessor) {
 
-  // updates vtx u discovery (UNUSED)
+  /* updates vtx u discovery (UNUSED)
   time += 1;
-  digraph[u].d = time;
+  digraph[u].d = time;*/
 
   // explores u descendents
   adj_iterator_type adj_it, adj_end;
@@ -127,10 +127,10 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
 
   }
 
-  // updates vtx u finish (UNUSED)
+  /* updates vtx u finish (UNUSED)
   time += 1;
   digraph[u].f = time;
-  digraph[u].color = true;
+  digraph[u].color = true; */
 }
 
 /* DFS */
@@ -155,7 +155,7 @@ void dfs(Digraph& digraph, Vertex& source, Vertex& target) {
   }
 
   if(DEBUG) {
-    cout << "pred: ";
+    cout << "st-flow g: ";
     for(auto i : predecessor) cout << i+1 << " ";
     cout << endl;
   }
@@ -231,6 +231,7 @@ auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>
   }
 
   if(predecessor[target].size() > 0) { // calculates residual digraph Df'
+    if(DEBUG) cout << "residual digraph:" << endl;
     generate_df_line(digraph, df_line.network, target, predecessor[target], predecessor); // starts generation from target
     df_line.status = true;
     return df_line;
