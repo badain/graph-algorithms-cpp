@@ -93,49 +93,55 @@ auto read_network(istream& is) {
 /* DFS VISIT */
 void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecessor) {
 
-  /* updates vtx u discovery (UNUSED)
+  /* updates vtx u discovery (UNUSED) */
   time += 1;
-  digraph[u].d = time;*/
+  digraph[u].d = time;
 
   // explores u descendents
   adj_iterator_type adj_it, adj_end;
   for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) {
-
     Vertex v = (*adj_it);
-
-    // if no predecessor has been assigned to v
-    if((predecessor[v] == null_vtx)) {
-      if(DEBUG) cout << "  parent: " << u+1 << " adj: " << v+1  << endl; // update
-      predecessor[v] = u;   // the current vtx is the predecessor for its decendents
-      dfs_visit(digraph, v, time, predecessor);
-    }
-    // if a predecessor has been assigned to v, checks if a replacement is viable
-    else if(predecessor[v] != null_vtx && predecessor[v] != u) {
-      // evaluates residual capacities
-      Arc uv; tie(uv, ignore) = edge(u, v, digraph);
-      Arc prev; tie(prev, ignore) = edge(predecessor[v], v, digraph);
-      int uv_residual   = (digraph[uv].capacity - digraph[uv].flow);     // current arc
-      int prev_residual = (digraph[prev].capacity - digraph[prev].flow); // arc of the previously assigned predecessor
-
-      // (st-flow g) definition requires the largest residual capacities
-      if(uv_residual > prev_residual) {
+    Arc uv; tie(uv, ignore) = edge(u, v, digraph);
+    int uv_residual = (digraph[uv].capacity - digraph[uv].flow);
+    if(uv_residual > 0) {
+      // if no predecessor has been assigned to v
+      if((predecessor[v] == null_vtx)) {
+        if(DEBUG) cout << "  parent: " << u+1 << " adj: " << v+1  << endl; // update
         predecessor[v] = u;   // the current vtx is the predecessor for its decendents
-        if(DEBUG) cout << "- parent: " << u+1 << " adj: " << v+1 << endl; // replace
         dfs_visit(digraph, v, time, predecessor);
       }
-      else if(DEBUG) cout << "x parent: " << u+1 << " adj: " << v+1 << endl; // reject
-    }
+      // if a predecessor has been assigned to v, checks if a replacement is viable
+      else if(predecessor[v] != null_vtx && predecessor[v] != u) {
+        // evaluates residual capacities
+        Arc prev; tie(prev, ignore) = edge(predecessor[v], v, digraph);
+        int prev_residual = (digraph[prev].capacity - digraph[prev].flow); // arc of the previously assigned predecessor
 
+        // (st-flow g) definition requires the largest residual capacities
+        if(uv_residual > prev_residual) {
+          predecessor[v] = u;   // the current vtx is the predecessor for its decendents
+          if(DEBUG) cout << "- parent: " << u+1 << " adj: " << v+1 << endl; // replace
+          dfs_visit(digraph, v, time, predecessor);
+        }
+        else if(DEBUG) cout << "x parent: " << u+1 << " adj: " << v+1 << endl; // reject
+      }
+    }
+    else if(DEBUG) cout << "o parent: " << u+1 << " adj: " << v+1 << endl; // residual reject
   }
 
-  /* updates vtx u finish (UNUSED)
+  /* updates vtx u finish (UNUSED) */
   time += 1;
   digraph[u].f = time;
-  digraph[u].color = true; */
+  digraph[u].color = true;
 }
 
 /* DFS */
-vector<Vertex> dfs(Digraph& digraph, Vertex& source, Vertex& target) {
+auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
+
+  struct st_flow_g_data {
+    vector<Vertex> pi;
+    bool status;
+  };
+  st_flow_g_data st_flow_g;
 
   // initialization
   vtx_iterator_type vtx_it, vtx_end;
@@ -155,13 +161,24 @@ vector<Vertex> dfs(Digraph& digraph, Vertex& source, Vertex& target) {
     }
   }
 
+  // checks st-flow validity
+  for (Vertex v = target; v != source; v = predecessor[v]) {
+    if(v == null_vtx) { // before reaching the source there is a null_vtx, thus there is no st-flow
+      st_flow_g.status = false;
+      return st_flow_g;
+    }
+  }
+
+  st_flow_g.status = true;
+  st_flow_g.pi = predecessor;
+
   if(DEBUG) {
     cout << "st-flow g: ";
     for(auto i : predecessor) cout << i+1 << " ";
     cout << endl;
   }
 
-  return predecessor;
+  return st_flow_g;
 }
 
 /* RESIDUAL DF' GENERATION */
@@ -275,19 +292,46 @@ int main(int argc, char** argv)
     auto df_line = bfs(data.network, data.source, data.target, predecessor);
 
     // calculates maximal feasible (st-flow) g
-    vector<Vertex> st_flow_g = dfs(df_line.network, data.source, data.target);
+    auto st_flow_g = dfs(df_line.network, data.source, data.target);
 
     // evaluates delG
     int min_del_g = numeric_limits<int>::max();
-    for (Vertex v = data.target; v != data.source; v = st_flow_g[v]) { // traverses st-path
-      Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g[v], v, df_line.network);
-      Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g[v], df_line.network);
+    for (Vertex v = data.target; v != data.source; v = st_flow_g.pi[v]) { // traverses st-path
+      Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g.pi[v], v, df_line.network);
+      Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g.pi[v], df_line.network);
 
+      // flow g(b) evaluation: by definition, if b is not in df', then g(b) = 0
       int uv_residual = (uv_exists) ? (df_line.network[uv].capacity - df_line.network[uv].flow) : 0;
       int vu_residual = (vu_exists) ? (df_line.network[vu].capacity - df_line.network[vu].flow) : 0;
 
       int del_g = uv_residual - vu_residual;
       min_del_g = min(min_del_g, del_g);
+    }
+
+    // updates flow along the st-path g
+    vector<int> path_order;
+    for (Vertex v = data.target; v != data.source; v = st_flow_g.pi[v]) { // for each edge in the augmenting path
+      Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g.pi[v], v, df_line.network);
+      Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g.pi[v], df_line.network);
+
+      // updates flow @ df'
+      if(uv_exists) df_line.network[uv].flow = df_line.network[uv].flow + min_del_g;
+      if(vu_exists) df_line.network[vu].flow = df_line.network[vu].flow - min_del_g;
+
+    }
+
+    if(DEBUG) {
+      arc_iterator_type arc_it, arc_end;
+      for (tie(arc_it, arc_end) = edges(df_line.network); arc_it != arc_end; ++arc_it) {
+        cout << (*arc_it) << " " << df_line.network[(*arc_it)].capacity << " " << df_line.network[(*arc_it)].flow << endl;
+      }
+    }
+
+    if(DEBUG) {
+      vtx_iterator_type vtx_it, vtx_end;
+      for (tie(vtx_it, vtx_end) = vertices(df_line.network); vtx_it != vtx_end; ++vtx_it) {
+        cout << (*vtx_it)+1 << " " << df_line.network[*vtx_it].color << " " << df_line.network[*vtx_it].d << " " << ((*vtx_it) == data.source) << " " << ((*vtx_it) == data.target) << endl;
+      }
     }
 
     return EXIT_SUCCESS;
