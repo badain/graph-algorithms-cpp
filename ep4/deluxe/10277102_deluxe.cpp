@@ -6,6 +6,7 @@
 
 #include <algorithm> // min
 #include <iostream>  // cin cout
+#include <limits>    // numeric_limits
 #include <tuple>     // tie ignore
 #include <queue>     // queue
 
@@ -134,7 +135,7 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
 }
 
 /* DFS */
-void dfs(Digraph& digraph, Vertex& source, Vertex& target) {
+vector<Vertex> dfs(Digraph& digraph, Vertex& source, Vertex& target) {
 
   // initialization
   vtx_iterator_type vtx_it, vtx_end;
@@ -159,6 +160,8 @@ void dfs(Digraph& digraph, Vertex& source, Vertex& target) {
     for(auto i : predecessor) cout << i+1 << " ";
     cout << endl;
   }
+
+  return predecessor;
 }
 
 /* RESIDUAL DF' GENERATION */
@@ -272,7 +275,20 @@ int main(int argc, char** argv)
     auto df_line = bfs(data.network, data.source, data.target, predecessor);
 
     // calculates maximal feasible (st-flow) g
-    dfs(df_line.network, data.source, data.target);
+    vector<Vertex> st_flow_g = dfs(df_line.network, data.source, data.target);
+
+    // evaluates delG
+    int min_del_g = numeric_limits<int>::max();
+    for (Vertex v = data.target; v != data.source; v = st_flow_g[v]) { // traverses st-path
+      Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g[v], v, df_line.network);
+      Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g[v], df_line.network);
+
+      int uv_residual = (uv_exists) ? (df_line.network[uv].capacity - df_line.network[uv].flow) : 0;
+      int vu_residual = (vu_exists) ? (df_line.network[vu].capacity - df_line.network[vu].flow) : 0;
+
+      int del_g = uv_residual - vu_residual;
+      min_del_g = min(min_del_g, del_g);
+    }
 
     return EXIT_SUCCESS;
 }
