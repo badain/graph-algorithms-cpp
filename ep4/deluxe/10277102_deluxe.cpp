@@ -9,6 +9,7 @@
 #include <limits>    // numeric_limits
 #include <tuple>     // tie ignore
 #include <queue>     // queue
+#include <map>       // map
 
 #define BOOST_ALLOW_DEPRECATED_HEADERS // silence warnings
 #include <boost/graph/adjacency_list.hpp>
@@ -35,6 +36,7 @@ struct BundledArc
   int flow;
   int order;
   bool phi;
+  vector<int> groups; // flow groups
   BundledArc() : capacity(0), flow(0), order(0), phi(true) {}
 };
 
@@ -91,41 +93,79 @@ auto read_network(istream& is) {
 }
 
 /* DFS VISIT */
-void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecessor) {
+void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecessor, int& group, Vertex& target, Vertex& source, vector<int>& group_flow, map<int, vector<int>>& resource_usage, vector<int>& target_groups) {
 
   /* updates vtx u discovery (UNUSED) */
   time += 1;
   digraph[u].d = time;
 
-  // explores u descendents
+  // sort u descendents by arc residual capacity
+  vector<Vertex> descendents;
   adj_iterator_type adj_it, adj_end;
-  for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) {
-    Vertex v = (*adj_it);
-    Arc uv; tie(uv, ignore) = edge(u, v, digraph);
-    int uv_residual = (digraph[uv].capacity - digraph[uv].flow);
-    if(uv_residual > 0) {
-      // if no predecessor has been assigned to v
-      if((predecessor[v] == null_vtx)) {
-        if(DEBUG) cout << "  parent: " << u+1 << " adj: " << v+1  << endl; // update
-        predecessor[v] = u;   // the current vtx is the predecessor for its decendents
-        dfs_visit(digraph, v, time, predecessor);
-      }
-      // if a predecessor has been assigned to v, checks if a replacement is viable
-      else if(predecessor[v] != null_vtx && predecessor[v] != u && predecessor[u] != null_vtx) {
-        // evaluates residual capacities
-        Arc prev; tie(prev, ignore) = edge(predecessor[v], v, digraph);
-        int prev_residual = (digraph[prev].capacity - digraph[prev].flow); // arc of the previously assigned predecessor
+  for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) descendents.push_back(*adj_it);
+  std::sort(descendents.begin(), descendents.end(),
+    [&](int a, int b) -> bool {
+      Arc ua; tie(ua, ignore) = edge(u, a, digraph);
+      Arc ub; tie(ub, ignore) = edge(u, b, digraph);
+      return digraph[ua].capacity > digraph[ub].capacity;
+    });
 
-        // (st-flow g) definition requires the largest residual capacities
-        if(uv_residual > prev_residual) {
-          predecessor[v] = u;   // the current vtx is the predecessor for its decendents
-          if(DEBUG) cout << "- parent: " << u+1 << " adj: " << v+1 << endl; // replace
-          dfs_visit(digraph, v, time, predecessor);
-        }
-        else if(DEBUG) cout << "x parent: " << u+1 << " adj: " << v+1 << endl; // reject
+  // group tracking
+  if((descendents.size() > 1) && (u != source)) {
+    group += 1; // switch flow group @ flow segmentation
+    group_flow.push_back(-1);
+  }
+
+  // explores u descendents
+  for(auto v : descendents) {
+    Arc uv; tie(uv, ignore) = edge(u, v, digraph);
+    if(digraph[uv].capacity > 0) {
+      if(DEBUG) cout << group << " " << uv << " " << digraph[uv].capacity << endl;
+
+      // uv residual capacity
+      int residual_uv = 0;
+      if(digraph[uv].groups.size() > 0) { // if uv is assigned to a group = there is flow through uv
+        int flow_uv = 0;
+        for(auto g : digraph[uv].groups) flow_uv += group_flow[g];
+        residual_uv = digraph[uv].capacity - flow_uv;
       }
+      else residual_uv = digraph[uv].capacity; // there is no flow through uv
+
+      // armazena group flow
+      if(group_flow[group] == -1) { // group flow is empty
+        group_flow[group] = residual_uv;
+      }
+      else { // there is incoming flow
+        group_flow[group] = min(group_flow[group], residual_uv);
+      }
+
+      // atribui group para current arc uv
+      digraph[uv].groups.push_back(group);
+
+      // atualiza group available resources
+      if(u != source) {
+        Arc prev_arc; tie(prev_arc, ignore) = edge(predecessor[u], u, digraph);
+
+        // evaluates group switch
+        vector<int> diff;
+        set_difference(digraph[prev_arc].groups.begin(), digraph[prev_arc].groups.end(), digraph[uv].groups.begin(), digraph[uv].groups.end(),
+        inserter(diff, diff.begin()));
+        
+        for(auto g : diff) {
+          resource_usage[g].push_back(group);
+        }
+      }
+
+      if(v == target){ // switch flow group @ flow end
+        target_groups.push_back(group); // maybe you should save the arcs instead
+        group += 1;
+        group_flow.push_back(-1);
+      }
+      else { // dfs recursion
+        predecessor[v] = u;
+        dfs_visit(digraph, v, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
+      } 
     }
-    else if(DEBUG) cout << "o parent: " << u+1 << " adj: " << v+1 << endl; // residual reject
   }
 
   /* updates vtx u finish (UNUSED) */
@@ -136,7 +176,7 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
 
 /* DFS */
 auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
-
+  if(DEBUG) cout << endl << "DFS" << endl;
   struct st_flow_g_data {
     vector<Vertex> pi;
     bool status;
@@ -144,6 +184,11 @@ auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
   st_flow_g_data st_flow_g;
 
   // initialization
+  int group = 0;              // group tracking
+  map<int, vector<int>> resource_usage; // tracks groups that are feeding resources to of other groups
+  vector<int> group_flow;     // flow in a group
+  vector<int> target_groups;
+  group_flow.push_back(-1); 
   vtx_iterator_type vtx_it, vtx_end;
   for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
     digraph[*vtx_it].d = 0;
@@ -152,7 +197,36 @@ auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
   vector<Vertex> predecessor(num_vertices(digraph), null_vtx);
   int time = 0;
 
-  dfs_visit(digraph, source, time, predecessor);
+  dfs_visit(digraph, source, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
+
+  int update_flow = 0;
+  if(DEBUG){
+    cout << endl << "target_groups: " << endl;
+    for(auto g : target_groups) {
+      cout << g << " ";
+    }
+    cout << endl;
+
+    cout << endl << "group_flow: " << endl;
+    for(auto flow : group_flow) {
+      cout << flow << " ";
+    }
+    cout << endl;
+
+    cout << endl << "update_flow: " << endl;
+    for(auto g : target_groups) {
+      update_flow += group_flow[g];
+    }
+    cout << update_flow << endl;
+
+    cout << endl << "resource_usage: " << endl;
+    for(const auto& elem : resource_usage)
+    {
+      cout << elem.first << " | ";
+      for(auto i : elem.second) cout << i << " ";
+    }
+    cout << endl;
+  }
 
   /* dfs visits each vertex
   for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
@@ -163,6 +237,7 @@ auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
     }
   } */
 
+  /*
   if(DEBUG) {
     cout << "st-flow g: ";
     for(auto i : predecessor) cout << i+1 << " ";
@@ -178,7 +253,8 @@ auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
       return st_flow_g;
     }
   }
-
+  */
+  if(DEBUG) cout << endl;
   st_flow_g.status = true;
   st_flow_g.pi = predecessor;
 
