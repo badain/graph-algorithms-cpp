@@ -111,7 +111,7 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
         dfs_visit(digraph, v, time, predecessor);
       }
       // if a predecessor has been assigned to v, checks if a replacement is viable
-      else if(predecessor[v] != null_vtx && predecessor[v] != u) {
+      else if(predecessor[v] != null_vtx && predecessor[v] != u && predecessor[u] != null_vtx) {
         // evaluates residual capacities
         Arc prev; tie(prev, ignore) = edge(predecessor[v], v, digraph);
         int prev_residual = (digraph[prev].capacity - digraph[prev].flow); // arc of the previously assigned predecessor
@@ -152,31 +152,35 @@ auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
   vector<Vertex> predecessor(num_vertices(digraph), null_vtx);
   int time = 0;
 
-  // dfs visits each vertex
+  dfs_visit(digraph, source, time, predecessor);
+
+  /* dfs visits each vertex
   for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
     if(DEBUG) cout << "dfs_level: " << (*vtx_it)+1 << endl;
     if(!digraph[*vtx_it].color) {
       Vertex u = (*vtx_it);
       dfs_visit(digraph, u, time, predecessor);
     }
+  } */
+
+  if(DEBUG) {
+    cout << "st-flow g: ";
+    for(auto i : predecessor) cout << i+1 << " ";
+    cout << endl << endl;
   }
 
   // checks st-flow validity
   for (Vertex v = target; v != source; v = predecessor[v]) {
+    if(DEBUG) cout << v+1 << " ";
     if(v == null_vtx) { // before reaching the source there is a null_vtx, thus there is no st-flow
       st_flow_g.status = false;
+      if(DEBUG) cout << "ERROR" << endl;
       return st_flow_g;
     }
   }
 
   st_flow_g.status = true;
   st_flow_g.pi = predecessor;
-
-  if(DEBUG) {
-    cout << "st-flow g: ";
-    for(auto i : predecessor) cout << i+1 << " ";
-    cout << endl;
-  }
 
   return st_flow_g;
 }
@@ -294,32 +298,44 @@ int main(int argc, char** argv)
     // calculates maximal feasible (st-flow) g
     auto st_flow_g = dfs(df_line.network, data.source, data.target);
 
-    // evaluates delG
-    int min_del_g = numeric_limits<int>::max();
-    for (Vertex v = data.target; v != data.source; v = st_flow_g.pi[v]) { // traverses st-path
-      Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g.pi[v], v, df_line.network);
-      Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g.pi[v], df_line.network);
+    /*
+    int max_flow = 0;
+    while(st_flow_g.status) {
 
-      // flow g(b) evaluation: by definition, if b is not in df', then g(b) = 0
-      int uv_residual = (uv_exists) ? (df_line.network[uv].capacity - df_line.network[uv].flow) : 0;
-      int vu_residual = (vu_exists) ? (df_line.network[vu].capacity - df_line.network[vu].flow) : 0;
+      // evaluates delG
+      int min_del_g = numeric_limits<int>::max();
+      for (Vertex v = data.target; v != data.source; v = st_flow_g.pi[v]) { // traverses st-path
+        Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g.pi[v], v, df_line.network);
+        Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g.pi[v], df_line.network);
 
-      int del_g = uv_residual - vu_residual;
-      min_del_g = min(min_del_g, del_g);
+        // flow g(b) evaluation: by definition, if b is not in df', then g(b) = 0
+        int uv_residual = (uv_exists) ? (df_line.network[uv].capacity - df_line.network[uv].flow) : 0;
+        int vu_residual = (vu_exists) ? (df_line.network[vu].capacity - df_line.network[vu].flow) : 0;
+
+        int del_g = uv_residual - vu_residual;
+        min_del_g = min(min_del_g, del_g);
+      }
+
+      // updates flow along the st-path g
+      vector<int> path_order;
+      for (Vertex v = data.target; v != data.source; v = st_flow_g.pi[v]) { // for each edge in the augmenting path
+        Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g.pi[v], v, df_line.network);
+        Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g.pi[v], df_line.network);
+
+        // updates flow @ df'
+        if(uv_exists) df_line.network[uv].flow = df_line.network[uv].flow + min_del_g;
+        if(vu_exists) df_line.network[vu].flow = df_line.network[vu].flow - min_del_g;
+
+      }
+
+      // update st_flow_g
+      max_flow += min_del_g;
+      st_flow_g = dfs(df_line.network, data.source, data.target);
+      if(DEBUG) cout << "update: " << st_flow_g.status << endl;
     }
 
-    // updates flow along the st-path g
-    vector<int> path_order;
-    for (Vertex v = data.target; v != data.source; v = st_flow_g.pi[v]) { // for each edge in the augmenting path
-      Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g.pi[v], v, df_line.network);
-      Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g.pi[v], df_line.network);
-
-      // updates flow @ df'
-      if(uv_exists) df_line.network[uv].flow = df_line.network[uv].flow + min_del_g;
-      if(vu_exists) df_line.network[vu].flow = df_line.network[vu].flow - min_del_g;
-
-    }
-
+    if(DEBUG) cout << "max_flow: " << max_flow << endl;
+    */
     if(DEBUG) {
       arc_iterator_type arc_it, arc_end;
       for (tie(arc_it, arc_end) = edges(df_line.network); arc_it != arc_end; ++arc_it) {
