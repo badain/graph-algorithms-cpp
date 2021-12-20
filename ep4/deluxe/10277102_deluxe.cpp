@@ -142,13 +142,7 @@ void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Ver
       if(DEBUG) cout << group << " " << uv << " " << digraph[uv].capacity;
 
       // uv residual capacity
-      int residual_uv = 0;
-      if(digraph[uv].groups.size() > 0) { // if uv is assigned to a group = there is flow through uv
-        int flow_uv = 0;
-        for(auto g : digraph[uv].groups) flow_uv += group_flow[g];
-        residual_uv = digraph[uv].capacity - flow_uv;
-      }
-      else residual_uv = digraph[uv].capacity; // there is no flow through uv
+      int residual_uv = get_residual(digraph, uv, group_flow);
       if(DEBUG) cout << " " << residual_uv << endl;
 
       // armazena group flow
@@ -321,13 +315,7 @@ auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>
       if(DEBUG) cout << "  adj: " << (*adj_it)+1 << endl;
       // visits unvisited decendent w/ available residual capacity
       Arc uv; tie(uv, ignore) = edge(u, (*adj_it), digraph);
-      int residual_uv = 0;
-      if(digraph[uv].groups.size() > 0) { // if uv is assigned to a group = there is flow through uv
-        int flow_uv = 0;
-        for(auto g : digraph[uv].groups) flow_uv += group_flow[g];
-        residual_uv = digraph[uv].capacity - flow_uv;
-      }
-      else residual_uv = digraph[uv].capacity; // there is no flow through uv
+      int residual_uv = get_residual(digraph, uv, group_flow);
       if(!digraph[*adj_it].color && (residual_uv > 0)) { // minimum residual capacity > 0 garantees residual digraph consistency
         digraph[*adj_it].color = true;         // marks as visited
         digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
