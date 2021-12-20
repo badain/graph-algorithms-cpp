@@ -37,7 +37,7 @@ struct BundledArc
   int order;
   bool phi;
   vector<int> groups; // flow groups
-  BundledArc() : capacity(0), flow(0), order(0), phi(true) {}
+  BundledArc() : capacity(0), flow(0), order(0), phi(true), groups(vector<int>()) {}
 };
 
 typedef boost::adjacency_list<boost::vecS,
@@ -93,7 +93,7 @@ auto read_network(istream& is) {
 }
 
 /* DFS VISIT */
-void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecessor, int& group, Vertex& target, Vertex& source, vector<int>& group_flow, map<int, vector<int>>& resource_usage, vector<int>& target_groups) {
+void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Vertex>& predecessor, int& group, Vertex& target, Vertex& source, vector<int>& group_flow, map<int, vector<int>>& resource_usage, vector<int>& target_groups) {
 
   /* updates vtx u discovery (UNUSED) */
   time += 1;
@@ -119,6 +119,7 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
   // explores u descendents
   for(auto v : descendents) {
     Arc uv; tie(uv, ignore) = edge(u, v, digraph);
+    Arc uv_hat; tie(uv_hat, ignore) = edge(u, v, dhat);
     if(digraph[uv].capacity > 0) {
       if(DEBUG) cout << group << " " << uv << " " << digraph[uv].capacity;
 
@@ -138,6 +139,7 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
 
       // atribui group para current arc uv
       digraph[uv].groups.push_back(group);
+      dhat[uv_hat].groups.push_back(group);
 
       // atualiza group available resources
       if(u != source) {
@@ -160,7 +162,7 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
       }
       else { // dfs recursion
         predecessor[v] = u;
-        dfs_visit(digraph, v, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
+        dfs_visit(digraph, dhat, v, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
       } 
     }
   }
@@ -172,20 +174,19 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
 }
 
 /* DFS */
-auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
+auto dfs(Digraph& digraph, Digraph& dhat, Vertex& source, Vertex& target, vector<int>& group_flow, int& group) {
   if(DEBUG) cout << endl << "DFS" << endl;
+
   struct st_flow_g_data {
-    vector<Vertex> pi;
+    vector<int> group_flow;
+    int update_flow;
     bool status;
   };
   st_flow_g_data st_flow_g;
 
   // initialization
-  int group = 0;              // group tracking
   map<int, vector<int>> resource_usage; // tracks groups that are feeding resources to of other groups
-  vector<int> group_flow;     // flow in a group
   vector<int> target_groups;
-  group_flow.push_back(-1); 
   vtx_iterator_type vtx_it, vtx_end;
   for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
     digraph[*vtx_it].d = 0;
@@ -194,7 +195,7 @@ auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
   vector<Vertex> predecessor(num_vertices(digraph), null_vtx);
   int time = 0;
 
-  dfs_visit(digraph, source, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
+  dfs_visit(digraph, dhat, source, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
 
   if(DEBUG){
     cout << endl << "group_flow: " << endl;
@@ -236,17 +237,19 @@ auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
       cout << endl;
     }
     cout << endl;
+    cout << "last group: " << group << endl << endl;
   }
 
   st_flow_g.status = true;
-  st_flow_g.pi = predecessor;
+  st_flow_g.group_flow = group_flow; // group information is encoded @ arc (decodes group into flow)
+  st_flow_g.update_flow = update_flow; // total flow updated in this run
 
   return st_flow_g;
 }
 
 /* RESIDUAL DF' GENERATION */
 void generate_df_line(Digraph& digraph, Digraph& df_line, Vertex& current, vector<Vertex>& pi, vector<vector<Vertex>>& predecessor){
-  
+
   if(!digraph[current].visited && pi.size() > 0) { // if current vector arcs were not extracted and is not the source
 
     if(DEBUG) {
@@ -260,14 +263,14 @@ void generate_df_line(Digraph& digraph, Digraph& df_line, Vertex& current, vecto
       Arc a_original; tie(a_original, ignore) = edge(pred, current, digraph);
       Arc a; tie(a, ignore) = add_edge(pred, current, df_line); // adds edge from predecessor to current vtx
       df_line[a].capacity = digraph[a_original].capacity; // stores arc capacity
-      generate_df_line(digraph, df_line, pred, predecessor[pred], predecessor); // ads the predecessor arcs for each predecessor (if unvisited)
+      generate_df_line(digraph, df_line, pred, predecessor[pred], predecessor); // adds the predecessor arcs for each predecessor (if unvisited)
     }
   }
 
 }
 
 /* BFS */
-auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>>& predecessor) {
+auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>>& predecessor, vector<int>& group_flow) {
 
   struct df_line_data {
     Digraph network;
@@ -278,6 +281,7 @@ auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>
   // initialization
   vtx_iterator_type vtx_it, vtx_end;
   for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
+    digraph[*vtx_it].visited = false;
     digraph[*vtx_it].color = false;
     digraph[*vtx_it].d = 0;
   }
@@ -297,8 +301,16 @@ auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>
     adj_iterator_type adj_it, adj_end;
     for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) {
       if(DEBUG) cout << "  adj: " << (*adj_it)+1 << endl;
-      // visits unvisited decendent
-      if(!digraph[*adj_it].color) {
+      // visits unvisited decendent w/ available residual capacity
+      Arc uv; tie(uv, ignore) = edge(u, (*adj_it), digraph);
+      int residual_uv = 0;
+      if(digraph[uv].groups.size() > 0) { // if uv is assigned to a group = there is flow through uv
+        int flow_uv = 0;
+        for(auto g : digraph[uv].groups) flow_uv += group_flow[g];
+        residual_uv = digraph[uv].capacity - flow_uv;
+      }
+      else residual_uv = digraph[uv].capacity; // there is no flow through uv
+      if(!digraph[*adj_it].color && (residual_uv > 0)) { // minimum residual capacity > 0 garantees residual digraph consistency
         digraph[*adj_it].color = true;         // marks as visited
         digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
         predecessor[*adj_it].push_back(u);     // BF-tree: path to source
@@ -331,10 +343,8 @@ auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>
 int main(int argc, char** argv)
 {
     auto data = read_network(cin); // data.network data.network_arcs data.source data.target
-    vector<Vertex> pi; // list of predecessors of a vertex pi
-    vector<vector<Vertex>> predecessor(num_vertices(data.network), pi); // predecessors of each vtx of the network
 
-    // generate residual network graph
+    // generate residual network graph D^
     vector<Arc> network_arcs_b; // positive forward arcs, negative backwards arcs
     size_t order = 1; 
     for(Arc arc : data.network_arcs) {
@@ -351,50 +361,28 @@ int main(int argc, char** argv)
       order++;
     }
 
-    // generates residual df' neetwork digraph
-    auto df_line = bfs(data.network, data.source, data.target, predecessor);
-
-    // calculates maximal feasible (st-flow) g
-    auto st_flow_g = dfs(df_line.network, data.source, data.target);
-
-    /*
+    // initialization
+    int group = 0; // group tracking
+    vector<int> group_flow; group_flow.push_back(-1); // flow in a flow group (group to flow)
+    vector<Vertex> pi; // list of predecessors of a vertex pi
     int max_flow = 0;
-    while(st_flow_g.status) {
+    
+    // flow augmentation
+    while(true) {
+      vector<vector<Vertex>> predecessor(num_vertices(data.network), pi); // predecessors of each vtx of the network
+      // generates residual df' network digraph from D^
+      auto df_line = bfs(data.network, data.source, data.target, predecessor, group_flow);
+      if(!df_line.status) break;
 
-      // evaluates delG
-      int min_del_g = numeric_limits<int>::max();
-      for (Vertex v = data.target; v != data.source; v = st_flow_g.pi[v]) { // traverses st-path
-        Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g.pi[v], v, df_line.network);
-        Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g.pi[v], df_line.network);
+      // calculates maximal feasible (st-flow) g
+      auto st_flow_g = dfs(df_line.network, data.network, data.source, data.target, group_flow, group);
 
-        // flow g(b) evaluation: by definition, if b is not in df', then g(b) = 0
-        int uv_residual = (uv_exists) ? (df_line.network[uv].capacity - df_line.network[uv].flow) : 0;
-        int vu_residual = (vu_exists) ? (df_line.network[vu].capacity - df_line.network[vu].flow) : 0;
-
-        int del_g = uv_residual - vu_residual;
-        min_del_g = min(min_del_g, del_g);
-      }
-
-      // updates flow along the st-path g
-      vector<int> path_order;
-      for (Vertex v = data.target; v != data.source; v = st_flow_g.pi[v]) { // for each edge in the augmenting path
-        Arc uv; bool uv_exists; tie(uv, uv_exists) = edge(st_flow_g.pi[v], v, df_line.network);
-        Arc vu; bool vu_exists; tie(vu, vu_exists) = edge(v, st_flow_g.pi[v], df_line.network);
-
-        // updates flow @ df'
-        if(uv_exists) df_line.network[uv].flow = df_line.network[uv].flow + min_del_g;
-        if(vu_exists) df_line.network[vu].flow = df_line.network[vu].flow - min_del_g;
-
-      }
-
-      // update st_flow_g
-      max_flow += min_del_g;
-      st_flow_g = dfs(df_line.network, data.source, data.target);
-      if(DEBUG) cout << "update: " << st_flow_g.status << endl;
+      max_flow += st_flow_g.update_flow;
     }
 
     if(DEBUG) cout << "max_flow: " << max_flow << endl;
-    
+
+    /* 
     if(DEBUG) {
       arc_iterator_type arc_it, arc_end;
       for (tie(arc_it, arc_end) = edges(df_line.network); arc_it != arc_end; ++arc_it) {
