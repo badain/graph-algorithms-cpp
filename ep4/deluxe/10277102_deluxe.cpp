@@ -121,12 +121,12 @@ void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Ver
   vector<Vertex> descendents;
   adj_iterator_type adj_it, adj_end;
   for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) descendents.push_back(*adj_it);
-  std::sort(descendents.begin(), descendents.end(),
-    [&](int a, int b) -> bool {
-      Arc ua; tie(ua, ignore) = edge(u, a, digraph);
-      Arc ub; tie(ub, ignore) = edge(u, b, digraph);
-      return digraph[ua].capacity > digraph[ub].capacity;
-    });
+  // std::sort(descendents.begin(), descendents.end(),
+  //   [&](int a, int b) -> bool {
+  //     Arc ua; tie(ua, ignore) = edge(u, a, digraph);
+  //     Arc ub; tie(ub, ignore) = edge(u, b, digraph);
+  //     return digraph[ua].capacity > digraph[ub].capacity;
+  //   });
 
   // group tracking
   if((descendents.size() > 1) && (u != source)) {
