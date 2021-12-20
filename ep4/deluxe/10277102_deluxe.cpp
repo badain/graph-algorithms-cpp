@@ -120,7 +120,7 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
   for(auto v : descendents) {
     Arc uv; tie(uv, ignore) = edge(u, v, digraph);
     if(digraph[uv].capacity > 0) {
-      if(DEBUG) cout << group << " " << uv << " " << digraph[uv].capacity << endl;
+      if(DEBUG) cout << group << " " << uv << " " << digraph[uv].capacity;
 
       // uv residual capacity
       int residual_uv = 0;
@@ -130,14 +130,11 @@ void dfs_visit(Digraph& digraph, Vertex& u, int& time, vector<Vertex>& predecess
         residual_uv = digraph[uv].capacity - flow_uv;
       }
       else residual_uv = digraph[uv].capacity; // there is no flow through uv
+      if(DEBUG) cout << " " << residual_uv << endl;
 
       // armazena group flow
-      if(group_flow[group] == -1) { // group flow is empty
-        group_flow[group] = residual_uv;
-      }
-      else { // there is incoming flow
-        group_flow[group] = min(group_flow[group], residual_uv);
-      }
+      if(group_flow[group] == -1) group_flow[group] = residual_uv;  // group flow is empty
+      else group_flow[group] = min(group_flow[group], residual_uv); // there is incoming flow
 
       // atribui group para current arc uv
       digraph[uv].groups.push_back(group);
@@ -199,62 +196,48 @@ auto dfs(Digraph& digraph, Vertex& source, Vertex& target) {
 
   dfs_visit(digraph, source, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
 
-  int update_flow = 0;
   if(DEBUG){
-    cout << endl << "target_groups: " << endl;
-    for(auto g : target_groups) {
-      cout << g << " ";
-    }
-    cout << endl;
-
     cout << endl << "group_flow: " << endl;
-    for(auto flow : group_flow) {
-      cout << flow << " ";
-    }
+    for(auto flow : group_flow) cout << flow << " ";
     cout << endl;
-
-    cout << endl << "update_flow: " << endl;
-    for(auto g : target_groups) {
-      update_flow += group_flow[g];
-    }
-    cout << update_flow << endl;
 
     cout << endl << "resource_usage: " << endl;
-    for(const auto& elem : resource_usage)
-    {
+    for(const auto& elem : resource_usage) {
       cout << elem.first << " | ";
       for(auto i : elem.second) cout << i << " ";
+      cout << endl;
+    }
+  }
+
+  // updates flow groups based on resource usage
+  for (auto it = resource_usage.rbegin(); it != resource_usage.rend(); ++it) {
+    int used_flow = 0; for(auto using_group : (*it).second) used_flow += group_flow[using_group]; // the flow of a parent group is given by the flow used by its child
+    group_flow[(*it).first] = used_flow; // parent flow group is retractively updated
+  }
+
+  int update_flow = 0;
+  for(auto g : target_groups) update_flow += group_flow[g];
+
+  if(DEBUG){
+    cout << endl << "updated_group_flow: " << endl;
+    for(auto flow : group_flow) cout << flow << " ";
+    cout << endl;
+
+    cout << endl << "target_groups: " << endl;
+    for(auto g : target_groups) cout << g << " ";
+    cout << endl;
+
+    cout << endl << "update_flow: " << update_flow << endl;
+    cout << endl;
+    arc_iterator_type adj_it, adj_end;
+    for (tie(adj_it, adj_end) = edges(digraph); adj_it != adj_end; ++adj_it){
+      cout << (*adj_it) << " ";
+      for(auto a : digraph[*adj_it].groups) cout << a << " ";
+      cout << endl;
     }
     cout << endl;
   }
 
-  /* dfs visits each vertex
-  for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
-    if(DEBUG) cout << "dfs_level: " << (*vtx_it)+1 << endl;
-    if(!digraph[*vtx_it].color) {
-      Vertex u = (*vtx_it);
-      dfs_visit(digraph, u, time, predecessor);
-    }
-  } */
-
-  /*
-  if(DEBUG) {
-    cout << "st-flow g: ";
-    for(auto i : predecessor) cout << i+1 << " ";
-    cout << endl << endl;
-  }
-
-  // checks st-flow validity
-  for (Vertex v = target; v != source; v = predecessor[v]) {
-    if(DEBUG) cout << v+1 << " ";
-    if(v == null_vtx) { // before reaching the source there is a null_vtx, thus there is no st-flow
-      st_flow_g.status = false;
-      if(DEBUG) cout << "ERROR" << endl;
-      return st_flow_g;
-    }
-  }
-  */
-  if(DEBUG) cout << endl;
   st_flow_g.status = true;
   st_flow_g.pi = predecessor;
 
@@ -411,7 +394,7 @@ int main(int argc, char** argv)
     }
 
     if(DEBUG) cout << "max_flow: " << max_flow << endl;
-    */
+    
     if(DEBUG) {
       arc_iterator_type arc_it, arc_end;
       for (tie(arc_it, arc_end) = edges(df_line.network); arc_it != arc_end; ++arc_it) {
@@ -425,6 +408,7 @@ int main(int argc, char** argv)
         cout << (*vtx_it)+1 << " " << df_line.network[*vtx_it].color << " " << df_line.network[*vtx_it].d << " " << ((*vtx_it) == data.source) << " " << ((*vtx_it) == data.target) << endl;
       }
     }
+    */
 
     return EXIT_SUCCESS;
 }
