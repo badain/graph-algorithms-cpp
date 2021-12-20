@@ -56,6 +56,24 @@ typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // a
 Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
 
 /* INPUT */
+int get_residual(Digraph& digraph, Arc& arc, vector<int>& group_flow) {
+  if(digraph[arc].groups.size() > 0) { // if uv is assigned to a group = there is flow through uv
+    int flow_uv = 0;
+    for(auto g : digraph[arc].groups) flow_uv += group_flow[g];
+    return digraph[arc].capacity - flow_uv;
+  }
+  else return digraph[arc].capacity; // there is no flow through uv
+}
+
+int get_flow(Digraph& digraph, Arc& arc, vector<int>& group_flow) {
+  if(digraph[arc].groups.size() > 0) {
+    int flow_arc = 0;
+    for(auto g : digraph[arc].groups) flow_arc += group_flow[g];
+    return flow_arc;
+  }
+  else return 0;
+}
+
 auto read_network(istream& is) {
 
   struct network_data {
@@ -366,7 +384,7 @@ int main(int argc, char** argv)
     vector<int> group_flow; group_flow.push_back(-1); // flow in a flow group (group to flow)
     vector<Vertex> pi; // list of predecessors of a vertex pi
     int max_flow = 0;
-    
+
     // flow augmentation
     while(true) {
       vector<vector<Vertex>> predecessor(num_vertices(data.network), pi); // predecessors of each vtx of the network
@@ -378,9 +396,39 @@ int main(int argc, char** argv)
       auto st_flow_g = dfs(df_line.network, data.network, data.source, data.target, group_flow, group);
 
       max_flow += st_flow_g.update_flow;
+
+      if(PRINT) {
+        cout << "0" << endl;
+        // residual capacities
+        for (size_t i = 0; i < data.network_arcs.size(); ++i) {
+          cout << get_residual(data.network, data.network_arcs[i], group_flow) << " " // cf, g +
+               << get_flow(data.network, data.network_arcs[i], group_flow) << " "; // cf, g +
+          cout << get_residual(data.network, network_arcs_b[i], group_flow) << " "   // cf, g -
+               << get_flow(data.network, network_arcs_b[i], group_flow) << endl;   // cf, g -
+        }  
+      }
     }
 
     if(DEBUG) cout << "max_flow: " << max_flow << endl;
+
+    if(PRINT) {
+      cout << "1" << endl;
+      // residual capacities
+      for (size_t i = 0; i < data.network_arcs.size(); ++i) {
+        cout << get_residual(data.network, data.network_arcs[i], group_flow) << " "
+             << get_residual(data.network, network_arcs_b[i], group_flow) << endl;
+      }
+      // val(f)
+      cout << max_flow << " ";
+      // source cut
+      vector<Vertex> cut; vtx_iterator_type vtx_it, vtx_end;
+      for (tie(vtx_it, vtx_end) = vertices(data.network); vtx_it != vtx_end; ++vtx_it) {
+        if(data.network[*vtx_it].color) cut.push_back((*vtx_it)+1);
+      }
+      cout << cut.size();
+      for (auto i : cut) cout << " " << i;
+      cout << endl;
+    }
 
     /* 
     if(DEBUG) {
