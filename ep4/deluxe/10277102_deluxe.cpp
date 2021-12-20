@@ -131,11 +131,15 @@ auto read_network(istream& is) {
 
   int order = 1; // keeps track of arc ordem for output specifications
   while (m--) {
-    int u, v; is >> u >> v;
-    Arc a; tie(a, ignore) = add_edge(--u, --v, data.network);
-    is >> data.network[a].capacity;
-    data.network[a].order = order; order++;
-    data.network_arcs.push_back(a);
+    int u, v; is >> u >> v; --u; --v;
+    int capacity; is >> capacity;
+    Arc uv; bool uv_exists = true; tie(uv, uv_exists) = edge(u, v, data.network);
+    if(!uv_exists) {
+      Arc a; tie(a, ignore) = add_edge(u, v, data.network);
+      data.network[a].capacity = capacity;
+      data.network[a].order = order; order++;
+      data.network_arcs.push_back(a);
+    }
   }
 
   return data;
