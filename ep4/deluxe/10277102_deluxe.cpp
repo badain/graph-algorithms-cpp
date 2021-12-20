@@ -56,13 +56,45 @@ typedef boost::graph_traits<Digraph>::adjacency_iterator adj_iterator_type; // a
 Vertex null_vtx = boost::graph_traits<Digraph>::null_vertex();
 
 /* INPUT */
-int get_residual(Digraph& digraph, Arc& arc, vector<int>& group_flow) {
-  if(digraph[arc].groups.size() > 0) { // if uv is assigned to a group = there is flow through uv
-    int flow_uv = 0;
-    for(auto g : digraph[arc].groups) flow_uv += group_flow[g];
-    return digraph[arc].capacity - flow_uv;
+void print_digraph(Digraph& digraph){
+  arc_iterator_type arc_it, arc_end;
+    for (tie(arc_it, arc_end) = edges(digraph); arc_it != arc_end; ++arc_it){
+      if(DEBUG) cout << (*arc_it) << " ";
+      for(auto a : digraph[*arc_it].groups) cout << a << " ";
+      if(DEBUG) cout << endl;
+    }
+}
+
+int get_residual(Digraph& digraph, Arc& arc, vector<int>& group_flow, Digraph& digraph_back) {
+  //if(DEBUG) cout << arc << "-" << digraph[arc].groups.size() << endl;
+  if(!digraph[arc].phi) { // if phi = -1, capacity equals flows of the same arc where phi = +1
+    // gets original arc vertices
+    Vertex u = source(arc, digraph);
+    Vertex v = target(arc, digraph);
+    Arc arc_back; tie(arc_back, ignore) = edge(v, u, digraph_back); // backward arc => phi = +1
+    // if(DEBUG) cout << endl << arc << "-" << arc_back;
+    // gets original arc flow
+    int flow_back = 0;
+    if(digraph_back[arc_back].groups.size() > 0) {
+      for(auto g : digraph_back[arc_back].groups) flow_back += group_flow[g];
+    }
+    //if(DEBUG) cout << "-" << flow_back;
+    int flow_forw = 0;
+    if(digraph[arc].groups.size() > 0) {
+      for(auto g : digraph[arc].groups) flow_forw += group_flow[g];
+    }
+    return flow_back - flow_forw; // (capacity(phi+1) - flow(phi-1)) capacity equals flows of the same arc where phi = +1
   }
-  else return digraph[arc].capacity; // there is no flow through uv
+  else {
+    if(digraph[arc].groups.size() > 0) { // if uv is assigned to a group = there is flow through uv
+      int flow_uv = 0;
+      for(auto g : digraph[arc].groups) flow_uv += group_flow[g];
+      // if(DEBUG) {for(auto g : digraph[arc].groups) { cout << g << " " << group_flow[g] << endl;}}
+      // if(DEBUG) cout << digraph[arc].capacity << " " << flow_uv << " " << (digraph[arc].capacity - flow_uv) << endl;
+      return digraph[arc].capacity - flow_uv;
+    }
+    else return digraph[arc].capacity; // there is no flow through uv
+  }
 }
 
 int get_flow(Digraph& digraph, Arc& arc, vector<int>& group_flow) {
@@ -111,11 +143,12 @@ auto read_network(istream& is) {
 }
 
 /* DFS VISIT */
-void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Vertex>& predecessor, int& group, Vertex& target, Vertex& source, vector<int>& group_flow, map<int, vector<int>>& resource_usage, vector<int>& target_groups) {
+void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Vertex>& predecessor, int& group, Vertex& target, Vertex& source, vector<int>& group_flow, map<int, vector<int>>& resource_usage, vector<int>& target_groups, set<int, greater<int>>& current_groups) {
 
   /* updates vtx u discovery (UNUSED) */
   time += 1;
   digraph[u].d = time;
+  current_groups.insert(group);
 
   // sort u descendents by arc residual capacity
   vector<Vertex> descendents;
@@ -138,12 +171,9 @@ void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Ver
   for(auto v : descendents) {
     Arc uv; tie(uv, ignore) = edge(u, v, digraph);
     Arc uv_hat; tie(uv_hat, ignore) = edge(u, v, dhat);
-    if(digraph[uv].capacity > 0) {
-      if(DEBUG) cout << group << " " << uv << " " << digraph[uv].capacity;
-
-      // uv residual capacity
-      int residual_uv = get_residual(digraph, uv, group_flow);
-      if(DEBUG) cout << " " << residual_uv << endl;
+    int residual_uv = get_residual(digraph, uv, group_flow, dhat);
+    if(residual_uv > 0) {
+      if(DEBUG) cout << group << " " << uv << " " << digraph[uv].capacity << " " << residual_uv << endl;
 
       // armazena group flow
       if(group_flow[group] == -1) group_flow[group] = residual_uv;  // group flow is empty
@@ -162,20 +192,32 @@ void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Ver
         set_difference(digraph[prev_arc].groups.begin(), digraph[prev_arc].groups.end(), digraph[uv].groups.begin(), digraph[uv].groups.end(),
         inserter(diff, diff.begin()));
         
+        if(diff.size() > 0 && DEBUG) {
+          cout << "ru " << prev_arc << " " << uv << endl;
+          for(auto i : digraph[prev_arc].groups) cout << i << " ";
+          cout << endl;
+          for(auto r : digraph[uv].groups) cout << r << " ";
+          cout << endl;
+        }
+
         for(auto g : diff) {
-          resource_usage[g].push_back(group);
+          bool is_current = current_groups.find(g) != current_groups.end();
+          if(is_current) resource_usage[g].push_back(group);
         }
       }
 
       if(v == target){ // switch flow group @ flow end
-        target_groups.push_back(group); // maybe you should save the arcs instead
+        target_groups.push_back(group); // maybe I should save the arcs instead
         group += 1;
         group_flow.push_back(-1);
       }
       else { // dfs recursion
         predecessor[v] = u;
-        dfs_visit(digraph, dhat, v, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
+        dfs_visit(digraph, dhat, v, time, predecessor, group, target, source, group_flow, resource_usage, target_groups, current_groups);
       } 
+    }
+    else if(DEBUG){
+      cout << group << "x" << uv << " " << residual_uv << " " << digraph[uv].phi << endl;
     }
   }
 
@@ -198,7 +240,8 @@ auto dfs(Digraph& digraph, Digraph& dhat, Vertex& source, Vertex& target, vector
 
   // initialization
   map<int, vector<int>> resource_usage; // tracks groups that are feeding resources to of other groups
-  vector<int> target_groups;
+  vector<int> target_groups; // groups feeding target
+  set<int, greater<int>> current_groups; // groups used in this DFS run
   vtx_iterator_type vtx_it, vtx_end;
   for (tie(vtx_it, vtx_end) = vertices(digraph); vtx_it != vtx_end; ++vtx_it) {
     digraph[*vtx_it].d = 0;
@@ -207,11 +250,15 @@ auto dfs(Digraph& digraph, Digraph& dhat, Vertex& source, Vertex& target, vector
   vector<Vertex> predecessor(num_vertices(digraph), null_vtx);
   int time = 0;
 
-  dfs_visit(digraph, dhat, source, time, predecessor, group, target, source, group_flow, resource_usage, target_groups);
+  dfs_visit(digraph, dhat, source, time, predecessor, group, target, source, group_flow, resource_usage, target_groups, current_groups);
 
   if(DEBUG){
     cout << endl << "group_flow: " << endl;
     for(auto flow : group_flow) cout << flow << " ";
+    cout << endl;
+
+    cout << endl << "current_groups: " << endl;
+    for(auto g : current_groups) cout << g << " ";
     cout << endl;
 
     cout << endl << "resource_usage: " << endl;
@@ -275,6 +322,8 @@ void generate_df_line(Digraph& digraph, Digraph& df_line, Vertex& current, vecto
       Arc a_original; tie(a_original, ignore) = edge(pred, current, digraph);
       Arc a; tie(a, ignore) = add_edge(pred, current, df_line); // adds edge from predecessor to current vtx
       df_line[a].capacity = digraph[a_original].capacity; // stores arc capacity
+      df_line[a].groups = digraph[a_original].groups; // stores arc flow groups
+      df_line[a].phi = digraph[a_original].phi; // stores arc direction
       generate_df_line(digraph, df_line, pred, predecessor[pred], predecessor); // adds the predecessor arcs for each predecessor (if unvisited)
     }
   }
@@ -315,7 +364,7 @@ auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>
       if(DEBUG) cout << "  adj: " << (*adj_it)+1 << endl;
       // visits unvisited decendent w/ available residual capacity
       Arc uv; tie(uv, ignore) = edge(u, (*adj_it), digraph);
-      int residual_uv = get_residual(digraph, uv, group_flow);
+      int residual_uv = get_residual(digraph, uv, group_flow, digraph);
       if(!digraph[*adj_it].color && (residual_uv > 0)) { // minimum residual capacity > 0 garantees residual digraph consistency
         digraph[*adj_it].color = true;         // marks as visited
         digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
@@ -380,20 +429,30 @@ int main(int argc, char** argv)
       auto df_line = bfs(data.network, data.source, data.target, predecessor, group_flow);
       if(!df_line.status) break;
 
+      if(DEBUG) {
+      cout << "data.network" << endl;
+      print_digraph(data.network);
+      cout << "df_line.network" << endl;
+      print_digraph(df_line.network);
+      }
       // calculates maximal feasible (st-flow) g
       auto st_flow_g = dfs(df_line.network, data.network, data.source, data.target, group_flow, group);
-
+      if(DEBUG) {
+      cout << "df_line.network after" << endl;
+      print_digraph(df_line.network);
+      }
       max_flow += st_flow_g.update_flow;
 
       if(PRINT) {
         cout << "0" << endl;
         // residual capacities
         for (size_t i = 0; i < data.network_arcs.size(); ++i) {
-          cout << get_residual(data.network, data.network_arcs[i], group_flow) << " " // cf, g +
+          if(DEBUG) cout << data.network_arcs[i] << " ";
+          cout << get_residual(data.network, data.network_arcs[i], group_flow, data.network) << " " // cf, g +
                << get_flow(data.network, data.network_arcs[i], group_flow) << " "; // cf, g +
-          cout << get_residual(data.network, network_arcs_b[i], group_flow) << " "   // cf, g -
+          cout << get_residual(data.network, network_arcs_b[i], group_flow, data.network) << " "   // cf, g -
                << get_flow(data.network, network_arcs_b[i], group_flow) << endl;   // cf, g -
-        }  
+        }
       }
     }
 
@@ -403,8 +462,8 @@ int main(int argc, char** argv)
       cout << "1" << endl;
       // residual capacities
       for (size_t i = 0; i < data.network_arcs.size(); ++i) {
-        cout << get_residual(data.network, data.network_arcs[i], group_flow) << " "
-             << get_residual(data.network, network_arcs_b[i], group_flow) << endl;
+        cout << get_residual(data.network, data.network_arcs[i], group_flow, data.network) << " "
+             << get_residual(data.network, network_arcs_b[i], group_flow, data.network) << endl;
       }
       // val(f)
       cout << max_flow << " ";
