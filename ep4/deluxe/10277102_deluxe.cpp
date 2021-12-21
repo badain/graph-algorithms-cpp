@@ -65,42 +65,51 @@ void print_digraph(Digraph& digraph){
     }
 }
 
-int get_residual(Digraph& digraph, Arc& arc, vector<int>& group_flow, Digraph& digraph_back) {
-  //if(DEBUG) cout << arc << "-" << digraph[arc].groups.size() << endl;
+int get_residual(Digraph& digraph, Arc& arc, vector<int>& group_flow, Digraph& digraph_back, set<int, greater<int>>& rotten_groups) {
   if(!digraph[arc].phi) { // if phi = -1, capacity equals flows of the same arc where phi = +1
     // gets original arc vertices
     Vertex u = source(arc, digraph);
     Vertex v = target(arc, digraph);
     Arc arc_back; tie(arc_back, ignore) = edge(v, u, digraph_back); // backward arc => phi = +1
-    // if(DEBUG) cout << endl << arc << "-" << arc_back;
+
     // gets original arc flow
     int flow_back = 0;
     if(digraph_back[arc_back].groups.size() > 0) {
-      for(auto g : digraph_back[arc_back].groups) flow_back += group_flow[g];
+      for(auto g : digraph_back[arc_back].groups) {
+        bool is_rotten = rotten_groups.find(g) != rotten_groups.end();
+        if(!is_rotten) flow_back += group_flow[g];
+      }
     }
-    //if(DEBUG) cout << "-" << flow_back;
+
     int flow_forw = 0;
     if(digraph[arc].groups.size() > 0) {
-      for(auto g : digraph[arc].groups) flow_forw += group_flow[g];
+      for(auto g : digraph[arc].groups) {
+        bool is_rotten = rotten_groups.find(g) != rotten_groups.end();
+        if(!is_rotten) flow_forw += group_flow[g];
+      }
     }
     return flow_back - flow_forw; // (capacity(phi+1) - flow(phi-1)) capacity equals flows of the same arc where phi = +1
   }
   else {
     if(digraph[arc].groups.size() > 0) { // if uv is assigned to a group = there is flow through uv
       int flow_uv = 0;
-      for(auto g : digraph[arc].groups) flow_uv += group_flow[g];
-      // if(DEBUG) {for(auto g : digraph[arc].groups) { cout << g << " " << group_flow[g] << endl;}}
-      // if(DEBUG) cout << digraph[arc].capacity << " " << flow_uv << " " << (digraph[arc].capacity - flow_uv) << endl;
+      for(auto g : digraph[arc].groups) {
+        bool is_rotten = rotten_groups.find(g) != rotten_groups.end();
+        if(!is_rotten) flow_uv += group_flow[g];
+      }
       return digraph[arc].capacity - flow_uv;
     }
     else return digraph[arc].capacity; // there is no flow through uv
   }
 }
 
-int get_flow(Digraph& digraph, Arc& arc, vector<int>& group_flow) {
+int get_flow(Digraph& digraph, Arc& arc, vector<int>& group_flow, set<int, greater<int>>& rotten_groups) {
   if(digraph[arc].groups.size() > 0) {
     int flow_arc = 0;
-    for(auto g : digraph[arc].groups) flow_arc += group_flow[g];
+    for(auto g : digraph[arc].groups) {
+      bool is_rotten = rotten_groups.find(g) != rotten_groups.end();
+      if(!is_rotten) flow_arc += group_flow[g];
+    }
     return flow_arc;
   }
   else return 0;
@@ -147,17 +156,19 @@ auto read_network(istream& is) {
 }
 
 /* DFS VISIT */
-void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Vertex>& predecessor, int& group, Vertex& target, Vertex& source, vector<int>& group_flow, map<int, vector<int>>& resource_usage, vector<int>& target_groups, set<int, greater<int>>& current_groups) {
+bool dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Vertex>& predecessor, int& group, Vertex& target, Vertex& source, vector<int>& group_flow,
+               map<int,vector<int>>& resource_usage, vector<int>& target_groups, set<int, greater<int>>& current_groups, set<int, greater<int>>& rotten_groups) {
 
   /* updates vtx u discovery (UNUSED) */
   time += 1;
   digraph[u].d = time;
   current_groups.insert(group);
 
-  // sort u descendents by arc residual capacity
+  // descendents tracking
   vector<Vertex> descendents;
   adj_iterator_type adj_it, adj_end;
   for (tie(adj_it, adj_end) = adjacent_vertices(u, digraph); adj_it != adj_end; ++adj_it) descendents.push_back(*adj_it);
+  int rotten_descendents = 0;
 
   // group tracking
   if((descendents.size() > 1) && (u != source)) {
@@ -166,10 +177,13 @@ void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Ver
   }
 
   // explores u descendents
+  //cout << "desc ";
+  //for(auto d : descendents) cout << u << d << " ";
+  //cout << endl;
   for(auto v : descendents) {
     Arc uv; tie(uv, ignore) = edge(u, v, digraph);
     Arc uv_hat; tie(uv_hat, ignore) = edge(u, v, dhat);
-    int residual_uv = get_residual(digraph, uv, group_flow, dhat);
+    int residual_uv = get_residual(digraph, uv, group_flow, dhat, rotten_groups);
     if(residual_uv > 0) {
       if(DEBUG) cout << group << " " << uv << " " << digraph[uv].capacity << " " << residual_uv << endl;
 
@@ -189,18 +203,23 @@ void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Ver
         vector<int> diff;
         set_difference(digraph[prev_arc].groups.begin(), digraph[prev_arc].groups.end(), digraph[uv].groups.begin(), digraph[uv].groups.end(),
         inserter(diff, diff.begin()));
-        
-        if(diff.size() > 0 && DEBUG) {
-          cout << "ru " << prev_arc << " " << uv << endl;
-          for(auto i : digraph[prev_arc].groups) cout << i << " ";
-          cout << endl;
-          for(auto r : digraph[uv].groups) cout << r << " ";
-          cout << endl;
-        }
 
         for(auto g : diff) {
           bool is_current = current_groups.find(g) != current_groups.end();
-          if(is_current) resource_usage[g].push_back(group);
+          bool is_rotten = rotten_groups.find(g) != rotten_groups.end();
+          if(is_current && !is_rotten) {
+            int used_resources = 0; for(auto g_res : resource_usage[g]) used_resources += group_flow[g_res];
+            if((group_flow[g] - used_resources) == 0){
+              // path is rotten
+            }
+            if(group_flow[group] > (group_flow[g] - used_resources)) {
+              group_flow[group] = group_flow[g] - used_resources;
+              resource_usage[g].push_back(group);
+            }
+            else {
+              resource_usage[g].push_back(group);
+            }
+          }
         }
       }
 
@@ -211,22 +230,34 @@ void dfs_visit(Digraph& digraph, Digraph& dhat, Vertex& u, int& time, vector<Ver
       }
       else { // dfs recursion
         predecessor[v] = u;
-        dfs_visit(digraph, dhat, v, time, predecessor, group, target, source, group_flow, resource_usage, target_groups, current_groups);
+        bool is_not_rotten = dfs_visit(digraph, dhat, v, time, predecessor, group, target, source, group_flow, resource_usage, target_groups, current_groups, rotten_groups);
       } 
     }
-    else if(DEBUG){
-      cout << group << "x" << uv << " " << residual_uv << " " << digraph[uv].phi << endl;
+    else {
+      if(DEBUG) cout << group << "x" << uv << " " << residual_uv << " " << digraph[uv].phi << endl;
+      rotten_groups.insert(group);
+      rotten_descendents += 1;
+      group += 1;
+      group_flow.push_back(-1);
     }
+  }
+
+  // checks route freshness (UNUSED)
+  if(rotten_descendents == descendents.size()) {
+    rotten_groups.insert(group-1);
+    return false;
   }
 
   /* updates vtx u finish (UNUSED) */
   time += 1;
   digraph[u].f = time;
   digraph[u].color = true;
+
+  return true;
 }
 
 /* DFS */
-auto dfs(Digraph& digraph, Digraph& dhat, Vertex& source, Vertex& target, vector<int>& group_flow, int& group) {
+auto dfs(Digraph& digraph, Digraph& dhat, Vertex& source, Vertex& target, vector<int>& group_flow, int& group, set<int, greater<int>>& rotten_groups) {
   if(DEBUG) cout << endl << "DFS" << endl;
 
   struct st_flow_g_data {
@@ -248,7 +279,7 @@ auto dfs(Digraph& digraph, Digraph& dhat, Vertex& source, Vertex& target, vector
   vector<Vertex> predecessor(num_vertices(digraph), null_vtx);
   int time = 0;
 
-  dfs_visit(digraph, dhat, source, time, predecessor, group, target, source, group_flow, resource_usage, target_groups, current_groups);
+  bool status = dfs_visit(digraph, dhat, source, time, predecessor, group, target, source, group_flow, resource_usage, target_groups, current_groups, rotten_groups);
 
   if(DEBUG){
     cout << endl << "group_flow: " << endl;
@@ -257,6 +288,10 @@ auto dfs(Digraph& digraph, Digraph& dhat, Vertex& source, Vertex& target, vector
 
     cout << endl << "current_groups: " << endl;
     for(auto g : current_groups) cout << g << " ";
+    cout << endl;
+
+    cout << endl << "rotten_groups: " << endl;
+    for(auto g : rotten_groups) cout << g << " ";
     cout << endl;
 
     cout << endl << "resource_usage: " << endl;
@@ -269,12 +304,19 @@ auto dfs(Digraph& digraph, Digraph& dhat, Vertex& source, Vertex& target, vector
 
   // updates flow groups based on resource usage
   for (auto it = resource_usage.rbegin(); it != resource_usage.rend(); ++it) {
-    int used_flow = 0; for(auto using_group : (*it).second) used_flow += group_flow[using_group]; // the flow of a parent group is given by the flow used by its child
+    int used_flow = 0;
+    for(auto using_group : (*it).second) { // the flow of a parent group is given by the flow used by its child
+      bool is_rotten = rotten_groups.find(using_group) != rotten_groups.end();
+      if(!is_rotten) used_flow += group_flow[using_group];
+    } 
     group_flow[(*it).first] = used_flow; // parent flow group is retractively updated
   }
 
   int update_flow = 0;
-  for(auto g : target_groups) update_flow += group_flow[g];
+  for(auto g : target_groups) {
+    bool is_rotten = rotten_groups.find(g) != rotten_groups.end();
+    if(!is_rotten) update_flow += group_flow[g];
+  }
 
   if(DEBUG){
     cout << endl << "updated_group_flow: " << endl;
@@ -329,7 +371,7 @@ void generate_df_line(Digraph& digraph, Digraph& df_line, Vertex& current, vecto
 }
 
 /* BFS */
-auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>>& predecessor, vector<int>& group_flow) {
+auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>>& predecessor, vector<int>& group_flow, set<int, greater<int>>& rotten_groups) {
 
   struct df_line_data {
     Digraph network;
@@ -362,7 +404,7 @@ auto bfs(Digraph& digraph, Vertex& source, Vertex& target, vector<vector<Vertex>
       if(DEBUG) cout << "  adj: " << (*adj_it)+1 << endl;
       // visits unvisited decendent w/ available residual capacity
       Arc uv; tie(uv, ignore) = edge(u, (*adj_it), digraph);
-      int residual_uv = get_residual(digraph, uv, group_flow, digraph);
+      int residual_uv = get_residual(digraph, uv, group_flow, digraph, rotten_groups);
       if(!digraph[*adj_it].color && (residual_uv > 0)) { // minimum residual capacity > 0 garantees residual digraph consistency
         digraph[*adj_it].color = true;         // marks as visited
         digraph[*adj_it].d = digraph[u].d + 1; // BF-tree: distance from source
@@ -417,6 +459,7 @@ int main(int argc, char** argv)
     // initialization
     int group = 0; // group tracking
     vector<int> group_flow; group_flow.push_back(-1); // flow in a flow group (group to flow)
+    set<int, greater<int>> rotten_groups;
     vector<Vertex> pi; // list of predecessors of a vertex pi
     int max_flow = 0;
 
@@ -424,7 +467,7 @@ int main(int argc, char** argv)
     while(true) {
       vector<vector<Vertex>> predecessor(num_vertices(data.network), pi); // predecessors of each vtx of the network
       // generates residual df' network digraph from D^
-      auto df_line = bfs(data.network, data.source, data.target, predecessor, group_flow);
+      auto df_line = bfs(data.network, data.source, data.target, predecessor, group_flow, rotten_groups);
       if(!df_line.status) break;
 
       if(DEBUG) {
@@ -434,7 +477,7 @@ int main(int argc, char** argv)
       print_digraph(df_line.network);
       }
       // calculates maximal feasible (st-flow) g
-      auto st_flow_g = dfs(df_line.network, data.network, data.source, data.target, group_flow, group);
+      auto st_flow_g = dfs(df_line.network, data.network, data.source, data.target, group_flow, group, rotten_groups);
       if(DEBUG) {
       cout << "df_line.network after" << endl;
       print_digraph(df_line.network);
@@ -446,10 +489,10 @@ int main(int argc, char** argv)
         // residual capacities
         for (size_t i = 0; i < data.network_arcs.size(); ++i) {
           if(DEBUG) cout << data.network_arcs[i] << " ";
-          cout << get_residual(data.network, data.network_arcs[i], group_flow, data.network) << " " // cf, g +
-               << get_flow(data.network, data.network_arcs[i], group_flow) << " "; // cf, g +
-          cout << get_residual(data.network, network_arcs_b[i], group_flow, data.network) << " "   // cf, g -
-               << get_flow(data.network, network_arcs_b[i], group_flow) << endl;   // cf, g -
+          cout << get_residual(data.network, data.network_arcs[i], group_flow, data.network, rotten_groups) << " " // cf, g +
+               << get_flow(data.network, data.network_arcs[i], group_flow, rotten_groups) << " "; // cf, g +
+          cout << get_residual(data.network, network_arcs_b[i], group_flow, data.network, rotten_groups) << " "   // cf, g -
+               << get_flow(data.network, network_arcs_b[i], group_flow, rotten_groups) << endl;   // cf, g -
         }
       }
     }
@@ -460,8 +503,8 @@ int main(int argc, char** argv)
       cout << "1" << endl;
       // residual capacities
       for (size_t i = 0; i < data.network_arcs.size(); ++i) {
-        cout << get_residual(data.network, data.network_arcs[i], group_flow, data.network) << " "
-             << get_residual(data.network, network_arcs_b[i], group_flow, data.network) << endl;
+        cout << get_residual(data.network, data.network_arcs[i], group_flow, data.network, rotten_groups) << " "
+             << get_residual(data.network, network_arcs_b[i], group_flow, data.network, rotten_groups) << endl;
       }
       // val(f)
       cout << max_flow << " ";
@@ -474,22 +517,6 @@ int main(int argc, char** argv)
       for (auto i : cut) cout << " " << i;
       cout << endl;
     }
-
-    /* 
-    if(DEBUG) {
-      arc_iterator_type arc_it, arc_end;
-      for (tie(arc_it, arc_end) = edges(df_line.network); arc_it != arc_end; ++arc_it) {
-        cout << (*arc_it) << " " << df_line.network[(*arc_it)].capacity << " " << df_line.network[(*arc_it)].flow << endl;
-      }
-    }
-
-    if(DEBUG) {
-      vtx_iterator_type vtx_it, vtx_end;
-      for (tie(vtx_it, vtx_end) = vertices(df_line.network); vtx_it != vtx_end; ++vtx_it) {
-        cout << (*vtx_it)+1 << " " << df_line.network[*vtx_it].color << " " << df_line.network[*vtx_it].d << " " << ((*vtx_it) == data.source) << " " << ((*vtx_it) == data.target) << endl;
-      }
-    }
-    */
 
     return EXIT_SUCCESS;
 }
